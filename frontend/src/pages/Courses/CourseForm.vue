@@ -260,7 +260,7 @@ const trashCourse = (): void => {
 	$dialog({
 		title: __('Delete Course'),
 		message: __(
-			'Deleting the course will also delete all its chapters and lessons. Are you sure you want to delete this course?'
+			'Deleting the course will also delete all its chapters and lessons. This is only available after the course is unpublished. Are you sure you want to delete this course?'
 		),
 		actions: [
 			{
@@ -276,19 +276,24 @@ const trashCourse = (): void => {
 	})
 }
 
-const courseMenu = computed<CourseMenuItem[]>(() => [
-	{
-		label: __('Export'),
-		icon: 'lucide-download',
-		onClick: () => exportCourseAsZip(courseResource.doc?.name),
-	},
-	{
-		label: __('Delete'),
-		icon: 'lucide-trash-2',
-		theme: 'red',
-		onClick: () => trashCourse(),
-	},
-])
+const courseMenu = computed<CourseMenuItem[]>(() => {
+	const items: CourseMenuItem[] = [
+		{
+			label: __('Export'),
+			icon: 'lucide-download',
+			onClick: () => exportCourseAsZip(courseResource.doc?.name),
+		},
+	]
+	if (!courseResource.doc?.published) {
+		items.push({
+			label: __('Delete'),
+			icon: 'lucide-trash-2',
+			theme: 'red',
+			onClick: () => trashCourse(),
+		})
+	}
+	return items
+})
 
 const checkPermission = (): void => {
 	if (user.data?.is_moderator) return

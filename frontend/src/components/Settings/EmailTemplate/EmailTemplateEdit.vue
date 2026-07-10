@@ -74,7 +74,7 @@ import {
 	createListResource,
 	toast,
 } from 'frappe-ui'
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { cleanError } from '@/utils'
 import type { EmailTemplate, EmailTemplateStep } from '@/types/email'
 
@@ -93,6 +93,7 @@ const props = withDefaults(defineProps<P>(), {
 const emit = defineEmits<E>()
 
 const originalName = props.templateData?.name || ''
+const appName = computed(() => window.lms_app_name || "Pa's Academy")
 
 const template = reactive({
 	name: props.templateData?.name || '',
@@ -102,12 +103,12 @@ const template = reactive({
 	response_html: props.templateData?.response_html || '',
 })
 
-const htmlPlaceholder = __(
-	'<p>Dear {{ member_name }},</p>\n\n<p>You have been enrolled in our upcoming batch {{ batch_name }}.</p>\n\n<p>Thanks,</p>\n<p>Frappe Learning</p>'
-)
-const richPlaceholder = __(
-	'Dear {{ member_name }},\n\nYou have been enrolled in our upcoming batch {{ batch_name }}.\n\nThanks,\nFrappe Learning'
-)
+const htmlPlaceholder = computed(() => __(
+	'<p>Dear {{ member_name }},</p>\n\n<p>You have been enrolled in our upcoming batch {{ batch_name }}.</p>\n\n<p>Thanks,</p>\n<p>{0}</p>'
+).replace('{0}', appName.value))
+const richPlaceholder = computed(() => __(
+	'Dear {{ member_name }},\n\nYou have been enrolled in our upcoming batch {{ batch_name }}.\n\nThanks,\n{0}'
+).replace('{0}', appName.value))
 
 const templates = createListResource({
 	doctype: 'Email Template',

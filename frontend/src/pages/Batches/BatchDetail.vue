@@ -80,8 +80,7 @@
 			</div>
 		</header>
 		<div>
-			<BatchOverview v-if="!isAdmin && !isStudent" :batch="batch" />
-			<div v-else>
+			<div>
 				<Tabs :tabs="tabs" v-model="tabIndex">
 					<template #tab-panel="{ tab }">
 						<div
@@ -200,7 +199,7 @@ const batch = createResource({
 	},
 	auto: true,
 	onSuccess: (data) => {
-		if (!data) {
+		if (!data || !canAccessBatch(data)) {
 			router.push({ name: 'Batches' })
 		}
 	},
@@ -212,6 +211,7 @@ watch(batch, () => {
 })
 
 const updateTabs = () => {
+	tabs.value = []
 	addToTabs('Overview', markRaw(BatchOverview), List)
 	if (!user.data) return
 	if (isAdmin.value) {
@@ -245,6 +245,11 @@ const isStudent = computed(() => {
 	return batch.data?.students?.includes(user.data?.name)
 })
 
+const canAccessBatch = (data) => {
+	if (user.data?.is_moderator || user.data?.is_evaluator) return true
+	return data?.students?.includes(user.data?.name)
+}
+
 const currentTabLabel = computed(() => tabs.value[tabIndex.value]?.label)
 
 const openAnnouncementModal = () => {
@@ -263,7 +268,7 @@ const publishToggle = createResource({
 	},
 	onSuccess() {
 		toast.success(
-			batch.data?.published ? __('Batch unpublished') : __('Batch published')
+			batch.data?.published ? __('Batch unpublished') : __('Batch published'),
 		)
 		batch.reload()
 	},

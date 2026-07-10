@@ -2,7 +2,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { call } from 'frappe-ui'
 import { usersStore } from './stores/user'
 import { sessionStore } from './stores/session'
-import { useSettings } from './stores/settings'
 import { getLmsBasePath } from './utils/basePath'
 
 // Run the fresh-site-admin persona check at most once per app load.
@@ -17,7 +16,7 @@ async function shouldCapturePersona() {
 	const courseCount = await call('frappe.client.get_count', {
 		doctype: 'LMS Course',
 		filters: {
-			title: ['not like', '%A guide to Frappe Learning%'],
+			title: ['not like', '%A guide to%'],
 		},
 	})
 	return !courseCount
@@ -28,6 +27,13 @@ const routes = [
 		path: '/',
 		name: 'Home',
 		component: () => import('@/pages/Home/Home.vue'),
+	},
+	{
+		path: '/invite/:token',
+		name: 'InviteSetup',
+		component: () => import('@/pages/InviteSetup.vue'),
+		props: true,
+		meta: { public: true, noSidebar: true },
 	},
 	{
 		path: '/courses',
@@ -121,26 +127,19 @@ const routes = [
 	},
 	{
 		path: '/job-openings',
-		name: 'Jobs',
-		component: () => import('@/pages/Jobs.vue'),
+		redirect: { name: 'Courses' },
 	},
 	{
 		path: '/job-openings/:job',
-		name: 'JobDetail',
-		component: () => import('@/pages/JobDetail.vue'),
-		props: true,
+		redirect: { name: 'Courses' },
 	},
 	{
 		path: '/job-openings/:job/applications',
-		name: 'JobApplications',
-		component: () => import('@/pages/JobApplications.vue'),
-		props: true,
+		redirect: { name: 'Courses' },
 	},
 	{
 		path: '/job-opening/:jobName/edit',
-		name: 'JobForm',
-		component: () => import('@/pages/JobForm.vue'),
-		props: true,
+		redirect: { name: 'Courses' },
 	},
 	{
 		path: '/certified-participants',
@@ -218,18 +217,14 @@ const routes = [
 		path: '/programming-exercises/submissions',
 		name: 'ProgrammingExerciseSubmissions',
 		component: () =>
-			import(
-				'@/pages/ProgrammingExercises/ProgrammingExerciseSubmissions.vue'
-			),
+			import('@/pages/ProgrammingExercises/ProgrammingExerciseSubmissions.vue'),
 		props: true,
 	},
 	{
 		path: '/programming-exercises/:exerciseID/submission/:submissionID',
 		name: 'ProgrammingExerciseSubmission',
 		component: () =>
-			import(
-				'@/pages/ProgrammingExercises/ProgrammingExerciseSubmission.vue'
-			),
+			import('@/pages/ProgrammingExercises/ProgrammingExerciseSubmission.vue'),
 		props: true,
 	},
 	{
@@ -259,7 +254,6 @@ let router = createRouter({
 router.beforeEach(async (to, from, next) => {
 	const { userResource } = usersStore()
 	let { isLoggedIn } = sessionStore()
-	const { settings } = useSettings()
 
 	try {
 		if (isLoggedIn) {
@@ -270,13 +264,21 @@ router.beforeEach(async (to, from, next) => {
 	}
 
 	if (!isLoggedIn) {
-		if (to.name == 'Home') router.push({ name: 'Courses' })
+		if (to.meta?.public) return next()
+		const redirectTo =
+			to.name === 'Home'
+				? ''
+				: `?redirect-to=${encodeURIComponent(to.fullPath)}`
+		window.location.href = `/login${redirectTo}`
+		return
+	}
 
-		await settings.promise
-		if (!settings.data.allow_guest_access) {
-			window.location.href = '/login'
-			return
-		}
+	if (
+		to.name === 'Billing' &&
+		!userResource.data?.is_moderator &&
+		!userResource.data?.is_system_manager
+	) {
+		return next({ name: 'Courses' })
 	}
 
 	if (

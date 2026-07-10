@@ -10,14 +10,14 @@
 					<span
 						class="select-none text-3xl-semibold tracking-tight text-ink-gray-9"
 					>
-						{{ __('Learning') }}
+						{{ appName }}
 					</span>
 				</div>
 				<p class="mt-3 text-p-base text-ink-gray-6">
 					{{
 						__(
-							'Answer a few quick questions so we can set Frappe Learning up for you'
-						)
+							'Answer a few quick questions so we can set {0} up for you'
+						).replace('{0}', appName)
 					}}
 				</p>
 			</div>
@@ -56,6 +56,7 @@ const { brand } = sessionStore()
 const { capture } = useTelemetry()
 const leaving = ref(false)
 const FADE_MS = 300
+const appName = computed(() => brand.name || "Pa's Academy")
 
 const leaveHome = async (persist) => {
 	leaving.value = true
@@ -105,7 +106,7 @@ const labels = computed(() => ({
 const questions = computed(() => [
 	{
 		key: 'usage_context',
-		title: __('Where will you be using Frappe Learning?'),
+		title: __('Where will you be using {0}?').replace('{0}', appName.value),
 		options: [
 			{ label: __('School'), value: 'School' },
 			{

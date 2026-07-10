@@ -18,24 +18,10 @@
 		"
 	>
 		<router-link
-			v-if="!certification.data.membership.purchased_certificate"
-			:to="{
-				name: 'Billing',
-				params: {
-					type: 'certificate',
-					name: courseName,
-				},
-			}"
-		>
-			<Button class="w-full">
-				<template #prefix>
-					<span class="lucide-graduation-cap size-4" />
-				</template>
-				{{ __('Get Certified') }}
-			</Button>
-		</router-link>
-		<router-link
-			v-else-if="!certification.data.membership.certificate"
+			v-if="
+				certification.data.membership.purchased_certificate &&
+				!certification.data.membership.certificate
+			"
 			:to="{
 				name: 'CourseCertification',
 				params: {
@@ -79,7 +65,7 @@ const downloadCertificate = () => {
 	window.open(
 		`/api/method/frappe.utils.print_format.download_pdf?doctype=LMS+Certificate&name=${
 			cert.name
-		}&format=${encodeURIComponent(cert.template)}`
+		}&format=${encodeURIComponent(cert.template)}`,
 	)
 }
 </script>

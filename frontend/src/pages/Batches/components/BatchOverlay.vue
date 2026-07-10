@@ -62,57 +62,20 @@
 			</div>
 
 			<div v-if="!readOnlyMode && !canAccessBatch">
-				<router-link
-					:to="{
-						name: 'Billing',
-						params: {
-							type: 'batch',
-							name: batch.data.name,
-						},
-					}"
-					v-if="
-						batch.data.paid_batch &&
-						batch.data.seats_left > 0 &&
-						batch.data.accept_enrollments
-					"
-				>
-					<Button class="w-full mt-4" variant="solid">
-						<template #prefix>
-							<span class="lucide-credit-card size-4" />
-						</template>
-						<span>
-							{{ __('Register Now') }}
-						</span>
-					</Button>
-				</router-link>
-				<Button
-					variant="solid"
-					class="w-full mt-2"
-					v-else-if="
-						batch.data.allow_self_enrollment &&
-						batch.data.seats_left &&
-						batch.data.accept_enrollments
-					"
-					@click="enrollInBatch()"
-				>
-					<template #prefix>
-						<span class="lucide-graduation-cap size-4" />
-					</template>
-					{{ __('Enroll Now') }}
-				</Button>
+				<Badge theme="gray" size="lg" class="mt-4">
+					{{ __('Invite required') }}
+				</Badge>
 			</div>
 		</div>
 	</div>
 </template>
 <script setup>
 import { inject, computed } from 'vue'
-import { Badge, Button, createResource, toast } from 'frappe-ui'
+import { Badge } from 'frappe-ui'
 import { formatNumberIntoCurrency, formatTime } from '@/utils'
 import DateRange from '@/components/Common/DateRange.vue'
 import VideoPreview from '@/components/VideoPreview.vue'
-import { useRouter } from 'vue-router'
 
-const router = useRouter()
 const user = inject('$user')
 const readOnlyMode = window.read_only_mode
 
@@ -122,39 +85,6 @@ const props = defineProps({
 		default: null,
 	},
 })
-
-const enroll = createResource({
-	url: 'lms.lms.utils.enroll_in_batch',
-	makeParams(values) {
-		return {
-			batch: props.batch.data.name,
-		}
-	},
-})
-
-const enrollInBatch = () => {
-	if (!user.data) {
-		window.location.href = `/login?redirect-to=/batches/${props.batch.data.name}`
-	}
-	enroll.submit(
-		{},
-		{
-			onSuccess(data) {
-				toast.success(__('You have been enrolled in this batch'))
-				router.push({
-					name: 'Batch',
-					params: {
-						batchName: props.batch.data.name,
-					},
-				})
-			},
-			onError(err) {
-				toast.error(__(err.messages?.[0] || err))
-				console.error(err)
-			},
-		}
-	)
-}
 
 const isStudent = computed(() => {
 	return user.data
@@ -175,9 +105,5 @@ const canAccessBatch = computed(() => {
 		return false
 	}
 	return isModerator.value || isStudent.value || isEvaluator.value
-})
-
-const isAdmin = computed(() => {
-	return isModerator.value || isEvaluator.value
 })
 </script>

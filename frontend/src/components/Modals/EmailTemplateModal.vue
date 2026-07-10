@@ -46,8 +46,8 @@
 					:rows="10"
 					:placeholder="
 						__(
-							'<p>Dear {{ member_name }},</p>\n\n<p>You have been enrolled in our upcoming batch {{ batch_name }}.</p>\n\n<p>Thanks,</p>\n<p>Frappe Learning</p>'
-						)
+							'<p>Dear {{ member_name }},</p>\n\n<p>You have been enrolled in our upcoming batch {{ batch_name }}.</p>\n\n<p>Thanks,</p>\n<p>{0}</p>'
+						).replace('{0}', appName)
 					"
 				/>
 				<div v-else>
@@ -62,8 +62,8 @@
 						:fixedMenu="true"
 						:placeholder="
 							__(
-								'Dear {{ member_name }},\n\nYou have been enrolled in our upcoming batch {{ batch_name }}.\n\nThanks,\nFrappe Learning'
-							)
+								'Dear {{ member_name }},\n\nYou have been enrolled in our upcoming batch {{ batch_name }}.\n\nThanks,\n{0}'
+							).replace('{0}', appName)
 						"
 						editorClass="prose-sm max-w-none border-b border-x border-outline-elevation-2 bg-surface-gray-2 rounded-b-md py-1 px-2 min-h-[7rem] max-h-[18rem] overflow-y-auto"
 					/>
@@ -75,7 +75,7 @@
 <script setup lang="ts">
 import { call, Dialog, FormControl, TextEditor, toast } from 'frappe-ui'
 import BooleanSwitch from '@/components/Controls/BooleanSwitch.vue'
-import { reactive, watch } from 'vue'
+import { computed, reactive, watch } from 'vue'
 import { cleanError } from '@/utils'
 
 const props = defineProps({
@@ -88,6 +88,7 @@ const props = defineProps({
 const show = defineModel()
 const emailTemplates = defineModel('emailTemplates')
 const emit = defineEmits(['created'])
+const appName = computed(() => window.lms_app_name || "Pa's Academy")
 const template = reactive({
 	name: '',
 	subject: '',

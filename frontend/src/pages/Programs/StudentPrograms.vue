@@ -2,7 +2,7 @@
 	<div class="py-5 px-5 w-full lg:w-3/4 lg:px-0 mx-auto">
 		<div class="flex items-center justify-between mb-5">
 			<div class="text-xl-semibold text-ink-gray-9">
-				{{ __('All Programs') }}
+				{{ __('My Programs') }}
 			</div>
 			<TabButtons v-model="currentTab" :buttons="tabs" class="w-fit" />
 		</div>
@@ -14,7 +14,7 @@
 				>
 					<div
 						v-for="program in data"
-						@click="openDetails(program.name, category)"
+						@click="openDetails(program.name)"
 						class="border rounded-md p-3 hover:border-outline-gray-3 cursor-pointer"
 					>
 						<div class="text-xl-semibold text-ink-gray-9 mb-2">
@@ -58,10 +58,6 @@
 			</div>
 		</div>
 	</div>
-	<ProgramEnrollment
-		v-model="showEnrollmentConfirmation"
-		:programName="enrollmentProgram"
-	/>
 </template>
 <script setup lang="ts">
 import { createResource, TabButtons } from 'frappe-ui'
@@ -70,29 +66,21 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { convertToTitleCase } from '@/utils'
 import ProgressBar from '@/components/ProgressBar.vue'
-import ProgramEnrollment from '@/pages/Programs/ProgramEnrollment.vue'
 import EmptyStateLayout from '@/components/Layouts/EmptyStateLayout.vue'
 
 const currentTab = ref('enrolled')
 const router = useRouter()
-const showEnrollmentConfirmation = ref(false)
-const enrollmentProgram = ref(null)
 
 const programs = createResource({
 	url: 'lms.lms.utils.get_programs',
 	auto: true,
 })
 
-const openDetails = (programName: any, category: string) => {
-	if (category === 'enrolled') {
-		router.push({
-			name: 'ProgramDetail',
-			params: { programName: programName },
-		})
-	} else {
-		showEnrollmentConfirmation.value = true
-		enrollmentProgram.value = programName
-	}
+const openDetails = (programName: any) => {
+	router.push({
+		name: 'ProgramDetail',
+		params: { programName: programName },
+	})
 }
 
 const tabs = computed(() => {
@@ -100,10 +88,6 @@ const tabs = computed(() => {
 		{
 			label: __('Enrolled'),
 			value: 'enrolled',
-		},
-		{
-			label: __('Published'),
-			value: 'published',
 		},
 	]
 })

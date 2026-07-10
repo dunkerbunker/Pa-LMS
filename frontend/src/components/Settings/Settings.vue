@@ -106,13 +106,6 @@ const tabsStructure = computed(() => {
 								{
 									fields: [
 										{
-											label: 'Allow Guest Access',
-											name: 'allow_guest_access',
-											description:
-												'If enabled, users can access the course and batch lists without logging in.',
-											type: 'checkbox',
-										},
-										{
 											label: 'Prevent Skipping Videos',
 											name: 'prevent_skipping_videos',
 											type: 'checkbox',
@@ -227,25 +220,6 @@ const tabsStructure = computed(() => {
 							],
 						},
 						{
-							label: 'Jobs',
-							columns: [
-								{
-									fields: [
-										{
-											label: 'Allow Job Posting',
-											name: 'allow_job_posting',
-											type: 'checkbox',
-											description:
-												'If enabled, users can post job openings on the job board. Else only admins can post jobs.',
-										},
-									],
-								},
-								{
-									fields: [],
-								},
-							],
-						},
-						{
 							label: 'Integrations',
 							columns: [
 								{
@@ -255,8 +229,7 @@ const tabsStructure = computed(() => {
 											name: 'livecode_url',
 											doctype: 'Livecode URL',
 											type: 'text',
-											description:
-												'https://docs.frappe.io/learning/falcon-self-hosting-guide',
+											description: 'Self-hosted live coding server URL.',
 										},
 									],
 								},
@@ -557,12 +530,6 @@ const tabsStructure = computed(() => {
 								{
 									fields: [
 										{
-											label: 'Jobs',
-											name: 'jobs',
-											type: 'checkbox',
-											description: 'Show the Jobs link in the sidebar.',
-										},
-										{
 											label: 'Statistics',
 											name: 'statistics',
 											type: 'checkbox',
@@ -574,45 +541,6 @@ const tabsStructure = computed(() => {
 											type: 'checkbox',
 											description:
 												'Show the Notifications link in the sidebar.',
-										},
-									],
-								},
-							],
-						},
-					],
-				},
-				{
-					label: 'Signup',
-					icon: 'LogIn',
-					description:
-						'Manage the settings related to user signup and registration',
-					sections: [
-						{
-							columns: [
-								{
-									fields: [
-										{
-											label: 'Identify User Category',
-											name: 'user_category',
-											type: 'checkbox',
-											description:
-												'Enable this option to identify the user category during signup.',
-										},
-										{
-											label: 'Disable signup',
-											name: 'disable_signup',
-											type: 'checkbox',
-											description:
-												'New users will have to be manually registered by Admins.',
-										},
-										{
-											label: 'Signup Consent HTML',
-											name: 'custom_signup_content',
-											type: 'Code',
-											mode: 'htmlmixed',
-											rows: 10,
-											description:
-												'Custom HTML shown on the signup page, e.g. for consent notices or terms of service.',
 										},
 									],
 								},

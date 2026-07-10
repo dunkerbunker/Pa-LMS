@@ -34,7 +34,7 @@
 			class="mb-5 flex flex-col justify-between space-y-4 lg:flex-row lg:items-center lg:space-y-0"
 		>
 			<div class="text-xl-semibold text-ink-gray-9">
-				{{ __('All Courses') }}
+				{{ pageTitle }}
 			</div>
 			<div
 				class="flex flex-col space-y-4 lg:flex-row lg:items-center lg:gap-x-4 lg:space-y-0"
@@ -239,37 +239,37 @@ const updateTabFilter = () => {
 	delete filters.value['created']
 	delete filters.value['published_on']
 	delete filters.value['upcoming']
+	delete filters.value['published']
+	delete filters.value['enrolled']
 
-	if (currentTab.value == 'enrolled' && user.data?.is_student) {
+	if (!isAdmin.value) {
 		filters.value['enrolled'] = 1
-		delete filters.value['published']
-	} else {
-		delete filters.value['published']
-		delete filters.value['enrolled']
+		return
+	}
 
-		if (currentTab.value == 'live') {
-			filters.value['published'] = 1
-			filters.value['upcoming'] = 0
-			filters.value['live'] = 1
-		} else if (currentTab.value == 'upcoming') {
-			filters.value['upcoming'] = 1
-		} else if (currentTab.value == 'new') {
-			filters.value['published'] = 1
-			filters.value['published_on'] = [
-				'>=',
-				dayjs().add(-3, 'month').format('YYYY-MM-DD'),
-			]
-		} else if (currentTab.value == 'created') {
-			filters.value['created'] = 1
-		} else if (currentTab.value == 'unpublished') {
-			filters.value['published'] = 0
-		}
+	if (currentTab.value == 'live') {
+		filters.value['published'] = 1
+		filters.value['upcoming'] = 0
+		filters.value['live'] = 1
+	} else if (currentTab.value == 'upcoming') {
+		filters.value['upcoming'] = 1
+	} else if (currentTab.value == 'new') {
+		filters.value['published'] = 1
+		filters.value['published_on'] = [
+			'>=',
+			dayjs().add(-3, 'month').format('YYYY-MM-DD'),
+		]
+	} else if (currentTab.value == 'created') {
+		filters.value['created'] = 1
+	} else if (currentTab.value == 'unpublished') {
+		filters.value['published'] = 0
 	}
 }
 
 const updateStudentFilter = () => {
-	if (!user.data || (user.data?.is_student && currentTab.value != 'enrolled')) {
-		filters.value['published'] = 1
+	if (!isAdmin.value) {
+		filters.value['enrolled'] = 1
+		delete filters.value['published']
 	}
 }
 
@@ -302,7 +302,11 @@ watch(currentTab, () => {
 })
 
 const courseTabs = computed(() => {
-	let tabs = [
+	if (!isAdmin.value) {
+		currentTab.value = 'enrolled'
+		return [{ label: __('My Courses'), value: 'enrolled' }]
+	}
+	return [
 		{
 			label: __('Published'),
 			value: 'live',
@@ -311,19 +315,22 @@ const courseTabs = computed(() => {
 			label: __('Upcoming'),
 			value: 'upcoming',
 		},
+		{ label: __('Created'), value: 'created' },
+		{ label: __('Unpublished'), value: 'unpublished' },
 	]
-	if (
+})
+
+const isAdmin = computed(() => {
+	return (
 		user.data?.is_moderator ||
 		user.data?.is_instructor ||
 		user.data?.is_evaluator
-	) {
-		tabs.push({ label: __('Created'), value: 'created' })
-		tabs.push({ label: __('Unpublished'), value: 'unpublished' })
-	} else if (user.data) {
-		tabs.push({ label: __('Enrolled'), value: 'enrolled' })
-	}
-	return tabs
+	)
 })
+
+const pageTitle = computed(() =>
+	isAdmin.value ? __('All Courses') : __('My Courses'),
+)
 
 const courseMenu = computed(() => {
 	return [

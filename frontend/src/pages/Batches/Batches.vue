@@ -50,7 +50,7 @@
 			class="mb-5 flex flex-col justify-between space-y-4 lg:flex-row lg:items-center lg:space-y-0"
 		>
 			<div class="text-xl-semibold text-ink-gray-9">
-				{{ __('All Batches') }}
+				{{ pageTitle }}
 			</div>
 			<div
 				class="flex flex-col space-y-3 lg:flex-row lg:items-center lg:gap-x-4 lg:space-y-0"
@@ -194,7 +194,7 @@ const batches = createListResource({
 const setCategories = (data) => {
 	let allCategories = data.map((batch) => batch.category)
 	allCategories = allCategories.filter(
-		(category, index) => allCategories.indexOf(category) === index && category
+		(category, index) => allCategories.indexOf(category) === index && category,
 	)
 	if (categories.value.length <= allCategories.length) {
 		updateCategories(data)
@@ -247,36 +247,32 @@ const updateCertificationFilter = () => {
 
 const updateTabFilter = () => {
 	orderBy.value = 'start_date'
-	if (!user.data) {
+	delete filters.value['enrolled']
+	delete filters.value['start_date']
+	delete filters.value['published']
+
+	if (!isAdmin.value) {
+		filters.value['enrolled'] = 1
+		orderBy.value = 'start_date desc'
 		return
 	}
-	if (currentTab.value == 'enrolled' && is_student.value) {
-		filters.value['enrolled'] = 1
-		delete filters.value['start_date']
-		delete filters.value['published']
-		orderBy.value = 'start_date desc'
-	} else if (is_student.value) {
-		delete filters.value['enrolled']
-	} else {
-		delete filters.value['start_date']
-		delete filters.value['published']
-		orderBy.value = 'start_date desc'
-		if (currentTab.value == 'upcoming') {
-			filters.value['start_date'] = ['>=', dayjs().format('YYYY-MM-DD')]
-			filters.value['published'] = 1
-			orderBy.value = 'start_date'
-		} else if (currentTab.value == 'archived') {
-			filters.value['start_date'] = ['<=', dayjs().format('YYYY-MM-DD')]
-		} else if (currentTab.value == 'unpublished') {
-			filters.value['published'] = 0
-		}
+
+	orderBy.value = 'start_date desc'
+	if (currentTab.value == 'upcoming') {
+		filters.value['start_date'] = ['>=', dayjs().format('YYYY-MM-DD')]
+		filters.value['published'] = 1
+		orderBy.value = 'start_date'
+	} else if (currentTab.value == 'archived') {
+		filters.value['start_date'] = ['<=', dayjs().format('YYYY-MM-DD')]
+	} else if (currentTab.value == 'unpublished') {
+		filters.value['published'] = 0
 	}
 }
 
 const updateStudentFilter = () => {
-	if (!user.data || (is_student.value && currentTab.value != 'enrolled')) {
-		filters.value['start_date'] = ['>=', dayjs().format('YYYY-MM-DD')]
-		filters.value['published'] = 1
+	if (!isAdmin.value) {
+		filters.value['enrolled'] = 1
+		delete filters.value['published']
 	}
 }
 
@@ -299,7 +295,7 @@ const setQueryParams = () => {
 	history.replaceState(
 		{},
 		'',
-		`${location.pathname}${queries.size > 0 ? `?${queries.toString()}` : ''}`
+		`${location.pathname}${queries.size > 0 ? `?${queries.toString()}` : ''}`,
 	)
 }
 
@@ -321,26 +317,32 @@ watch(currentTab, () => {
 })
 
 const batchTabs = computed(() => {
-	let tabs = [
+	if (!isAdmin.value) {
+		currentTab.value = 'enrolled'
+		return [{ label: __('My Batches'), value: 'enrolled' }]
+	}
+	return [
 		{
 			label: __('All'),
 			value: 'all',
 		},
+		{ label: __('Upcoming'), value: 'upcoming' },
+		{ label: __('Archived'), value: 'archived' },
+		{ label: __('Unpublished'), value: 'unpublished' },
 	]
+})
 
-	if (
+const isAdmin = computed(() => {
+	return (
 		user.data?.is_moderator ||
 		user.data?.is_instructor ||
 		user.data?.is_evaluator
-	) {
-		tabs.push({ label: __('Upcoming'), value: 'upcoming' })
-		tabs.push({ label: __('Archived'), value: 'archived' })
-		tabs.push({ label: __('Unpublished'), value: 'unpublished' })
-	} else if (user.data) {
-		tabs.push({ label: __('Enrolled'), value: 'enrolled' })
-	}
-	return tabs
+	)
 })
+
+const pageTitle = computed(() =>
+	isAdmin.value ? __('All Batches') : __('My Batches'),
+)
 
 const canCreateBatch = () => {
 	if (readOnlyMode) return false

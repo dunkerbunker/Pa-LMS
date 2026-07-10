@@ -59,7 +59,6 @@
 <script setup>
 import { getSidebarLinks } from '@/utils'
 import { useRouter } from 'vue-router'
-import { call } from 'frappe-ui'
 import { ref, watch } from 'vue'
 import { sessionStore } from '@/stores/session'
 import { useSettings } from '@/stores/settings'
@@ -109,7 +108,7 @@ const filterLinksToShow = (data) => {
 	Object.keys(data).forEach((key) => {
 		if (!parseInt(data[key])) {
 			sidebarLinks.value = sidebarLinks.value.filter(
-				(link) => link.label.toLowerCase().split(' ').join('_') !== key
+				(link) => link.label.toLowerCase().split(' ').join('_') !== key,
 			)
 		}
 	})
@@ -150,7 +149,7 @@ const updateSidebarLinks = () => {
 				}
 				addOtherLinks()
 			},
-		}
+		},
 	)
 }
 
@@ -191,7 +190,7 @@ watch(
 		}
 		updateSidebarLinks()
 	},
-	{ immediate: true }
+	{ immediate: true },
 )
 
 const checkIfCanAddProgram = async () => {
@@ -199,8 +198,7 @@ const checkIfCanAddProgram = async () => {
 	if (isModerator.value || isInstructor.value) {
 		return true
 	}
-	const programs = await call('lms.lms.utils.get_programs')
-	return programs.enrolled.length > 0 || programs.published.length > 0
+	return false
 }
 
 let isActive = (tab) => {

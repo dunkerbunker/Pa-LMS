@@ -510,6 +510,9 @@ const getSidebarItems = (forMobile = false) => {
 					icon: 'BookOpen',
 					to: 'Courses',
 					activeFor: ['Courses', 'CourseDetail', 'Lesson'],
+					condition: () => {
+						return userResource?.data
+					},
 				},
 				{
 					label: 'Programs',
@@ -526,6 +529,9 @@ const getSidebarItems = (forMobile = false) => {
 					icon: 'Users',
 					to: 'Batches',
 					activeFor: ['Batches', 'BatchDetail', 'Batch', 'BatchForm'],
+					condition: () => {
+						return userResource?.data
+					},
 				},
 				{
 					label: 'Certifications',
@@ -537,16 +543,13 @@ const getSidebarItems = (forMobile = false) => {
 					},
 				},
 				{
-					label: 'Jobs',
-					icon: 'Briefcase',
-					to: 'Jobs',
-					activeFor: ['Jobs', 'JobDetail'],
-				},
-				{
 					label: 'Statistics',
 					icon: 'TrendingUp',
 					to: 'Statistics',
 					activeFor: ['Statistics'],
+					condition: () => {
+						return userResource?.data
+					},
 				},
 				{
 					label: 'Contact Us',
@@ -559,7 +562,8 @@ const getSidebarItems = (forMobile = false) => {
 							(!forMobile &&
 								settings?.data?.contact_us_email &&
 								userResource?.data) ||
-							settings?.data?.contact_us_url
+							(settings?.data?.contact_us_url &&
+								userResource?.data)
 						)
 					},
 				},
@@ -626,28 +630,24 @@ const isAdmin = () => {
 
 const checkIfCanAddProgram = (forMobile = false) => {
 	const { userResource } = usersStore()
-	const { programs } = useSettings()
 	if (!userResource.data) return false
 	if (forMobile) return false
 	if (userResource?.data?.is_moderator || userResource?.data?.is_instructor) {
 		return true
 	}
-	return (
-		programs.data?.enrolled.length > 0 ||
-		programs.data?.published.length > 0
-	)
+	return false
 }
 
 export function getFormattedDateRange(
 	startDate,
 	endDate,
-	format = 'DD MMM YYYY'
+	format = 'DD MMM YYYY',
 ) {
 	if (startDate === endDate) {
 		return dayjs(startDate).format(format)
 	}
 	return `${dayjs(startDate).format(format)} - ${dayjs(endDate).format(
-		format
+		format,
 	)}`
 }
 
@@ -679,14 +679,14 @@ export function singularize(word) {
 	}
 	return word.replace(
 		new RegExp(`(${Object.keys(endings).join('|')})$`),
-		(r) => endings[r]
+		(r) => endings[r],
 	)
 }
 
 export const validateFile = async (
 	file,
 	showToast = true,
-	fileType = 'image'
+	fileType = 'image',
 ) => {
 	const extension = file.name.split('.').pop().toLowerCase()
 	const error = (msg) => {
@@ -699,7 +699,7 @@ export const validateFile = async (
 		return error(__('Only PDF files are allowed.'))
 	} else if (fileType == 'document' && !['doc', 'docx'].includes(extension)) {
 		return error(
-			__('Only document file of type .doc or .docx are allowed.')
+			__('Only document file of type .doc or .docx are allowed.'),
 		)
 	} else if (fileType == 'zip' && extension != 'zip') {
 		return error(__('Only ZIP files are allowed.'))
@@ -824,7 +824,8 @@ export const createLMSCategory = (name) => {
 		})
 		.catch((err) => {
 			toast.error(
-				cleanError(err.messages?.[0]) || __('Unable to create category')
+				cleanError(err.messages?.[0]) ||
+					__('Unable to create category'),
 			)
 		})
 }
@@ -935,7 +936,7 @@ const wrapRangeInHighlight = (
 	{ node, startIndex, endIndex },
 	color,
 	name,
-	scrollIntoView
+	scrollIntoView,
 ) => {
 	const range = document.createRange()
 	range.setStart(node, startIndex)

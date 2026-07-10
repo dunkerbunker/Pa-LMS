@@ -1,0 +1,197 @@
+Scope Note
+The current workspace contains the Vue/Frappe UI frontend and tests, but not the Python/Frappe backend package files for lms.lms.*. Backend paths below refer to the likely Frappe app modules that serve the APIs already called by the frontend.
+Current Touchpoints Reviewed
+Routing/auth: [frontend/src/router.js](D:/Projects/Personal/LMS/frontend/src/router.js)
+Session/user/settings stores: [frontend/src/stores/session.js](D:/Projects/Personal/LMS/frontend/src/stores/session.js), [frontend/src/stores/user.js](D:/Projects/Personal/LMS/frontend/src/stores/user.js), [frontend/src/stores/settings.js](D:/Projects/Personal/LMS/frontend/src/stores/settings.js)
+Home/landing behavior: [frontend/src/pages/Home/Home.vue](D:/Projects/Personal/LMS/frontend/src/pages/Home/Home.vue)
+Course listing/detail/lesson/enrollment: [frontend/src/pages/Courses/Courses.vue](D:/Projects/Personal/LMS/frontend/src/pages/Courses/Courses.vue), [frontend/src/pages/Courses/CourseDetail.vue](D:/Projects/Personal/LMS/frontend/src/pages/Courses/CourseDetail.vue), [frontend/src/pages/Lesson.vue](D:/Projects/Personal/LMS/frontend/src/pages/Lesson.vue), [frontend/src/components/CourseCardOverlay.vue](D:/Projects/Personal/LMS/frontend/src/components/CourseCardOverlay.vue)
+Admin member creation: [frontend/src/components/Settings/Members.vue](D:/Projects/Personal/LMS/frontend/src/components/Settings/Members.vue), [frontend/src/components/Modals/NewMemberModal.vue](D:/Projects/Personal/LMS/frontend/src/components/Modals/NewMemberModal.vue)
+Admin course enrollment modal: [frontend/src/pages/Courses/CourseEnrollmentModal.vue](D:/Projects/Personal/LMS/frontend/src/pages/Courses/CourseEnrollmentModal.vue)
+Batch/listing surfaces that may also expose courses: [frontend/src/pages/Batches/Batches.vue](D:/Projects/Personal/LMS/frontend/src/pages/Batches/Batches.vue), [frontend/src/pages/Batches/BatchDetail.vue](D:/Projects/Personal/LMS/frontend/src/pages/Batches/BatchDetail.vue)
+Sidebar/public navigation: [frontend/src/utils/index.js](D:/Projects/Personal/LMS/frontend/src/utils/index.js)
+Step-By-Step Plan
+Make private mode a server-enforced default.
+Set allow_guest_access = 0 and disable_signup = 1 through migration/default config.
+Remove or ignore any UI/admin setting that can re-enable public browsing or self-signup.
+Ensure unauthenticated access to /lms, /lms/, /lms/courses, course detail, lessons, batches, programs, jobs, and public LMS APIs redirects to /login.
+Allow only /login, logout, static assets, and the invite-acceptance route/API as unauthenticated exceptions.
+
+Replace the public landing page.
+In [frontend/src/router.js](D:/Projects/Personal/LMS/frontend/src/router.js), change / so authenticated users go to their private dashboard or assigned courses, while unauthenticated users go to /login.
+Keep Home.vue as an authenticated dashboard only, not a public landing page.
+Remove the current guest behavior where unauthenticated users can be redirected from Home to Courses.
+
+Disable public self-signup completely.
+Backend: disable Frappe website signup and reject signup/registration methods unless they are invite-token completion calls.
+Frontend: remove signup links/prompts from login-adjacent LMS UI if present.
+Settings: remove or lock the Signup settings section currently exposing disable_signup, category signup, and custom signup content in [frontend/src/components/Settings/Settings.vue](D:/Projects/Personal/LMS/frontend/src/components/Settings/Settings.vue).
+
+Add invite data model.
+New DocType: LMS User Inviteemail
+status: Pending, Accepted, Expired, Revoked
+token_hash
+expires_at
+used_at
+used_by
+invited_by
+invited_user optional User link
+roles or role child table
+child table LMS User Invite Course with course
+
+Store only a cryptographic hash of the token, never the raw token.
+Add unique constraints for active pending invite per email as appropriate.
+Add scheduled cleanup/expiry job to mark expired invites.
+
+Add invite backend APIs.
+create_invite(email, courses, roles):Admin/moderator only.
+Validates selected courses.
+Creates pending invite with secure random token and expiry.
+Sends email containing /lms/invite/<token> or equivalent route.
+
+get_invite(token):Guest allowed.
+Validates hash, status, expiry, unused state.
+Returns minimal invite metadata, not token hash.
+
+accept_invite(token, first_name, last_name, password, optional_profile_fields):Guest allowed.
+Re-validates token transactionally.
+Creates or activates User for invite email.
+Sets password and profile fields.
+Assigns LMS Student plus selected roles.
+Creates LMS Enrollment records for assigned courses.
+Marks invite used once.
+
+resend_invite, revoke_invite, and update_user_course_assignments:Admin/moderator only.
+
+
+Convert admin member management to invite flow.
+Update [frontend/src/components/Modals/NewMemberModal.vue](D:/Projects/Personal/LMS/frontend/src/components/Modals/NewMemberModal.vue):Replace direct frappe.client.insert into User.
+Add course multi-select for selected courses.
+Submit to lms.lms.api.create_invite.
+Keep role selection if needed.
+
+Update edit mode to show assigned courses and call update_user_course_assignments.
+Update [frontend/src/components/Settings/Members.vue](D:/Projects/Personal/LMS/frontend/src/components/Settings/Members.vue) to display invite status for pending users and actions to resend/revoke.
+
+Add invite acceptance frontend.
+Add route such as /invite/:token.
+Use a no-sidebar layout.
+Fetch invite metadata from get_invite.
+Show profile/password setup form.
+Submit to accept_invite.
+On success, redirect to /login or log in then route to assigned courses/dashboard.
+Show clear expired/used/revoked states without revealing sensitive details.
+
+Replace public course browsing with assigned-course listing.
+Update [frontend/src/pages/Courses/Courses.vue](D:/Projects/Personal/LMS/frontend/src/pages/Courses/Courses.vue):For students, default to assigned/enrolled courses only.
+Remove public tabs: Published, Upcoming, New.
+Remove category/search behavior as a public discovery mechanism for students; search may remain only within assigned courses if desired.
+Admin/instructors can still see created/admin courses.
+
+Update [frontend/src/pages/Home/StudentHome.vue](D:/Projects/Personal/LMS/frontend/src/pages/Home/StudentHome.vue):get_my_courses must return assigned courses only.
+Remove “Our Popular Courses” fallback.
+
+Update sidebar links in [frontend/src/utils/index.js](D:/Projects/Personal/LMS/frontend/src/utils/index.js) so guest-visible learning links disappear entirely.
+
+Remove learner self-enrollment and purchase paths.
+Remove/disable Enroll Now, Start Learning self-enrollment, and free/paid course purchase entry points from:[frontend/src/components/CourseCardOverlay.vue](D:/Projects/Personal/LMS/frontend/src/components/CourseCardOverlay.vue)
+[frontend/src/pages/Lesson.vue](D:/Projects/Personal/LMS/frontend/src/pages/Lesson.vue)
+[frontend/src/pages/Billing.vue](D:/Projects/Personal/LMS/frontend/src/pages/Billing.vue), if course checkout is no longer valid
+
+Keep admin enrollment/assignment controls only.
+Replace learner unassigned states with “not found” or “not permitted”, not “contact admin to enroll” if the course itself should be undiscoverable.
+
+Enforce backend course permissions.
+Update likely backend modules:lms/lms/utils.py: get_courses, get_course_details, get_course_outline, get_lesson, get_related_courses, batch/program helpers.
+lms/lms/api.py: get_my_courses, get_created_courses, get_all_users, get_members, progress/stats helpers.
+DocType controllers for LMS Course, Course Lesson, Course Chapter, LMS Enrollment, LMS Quiz, LMS Assignment, LMS Course Review, LMS Certificate.
+hooks.py: add/adjust permission query conditions and has_permission.
+
+Define one shared helper, for example can_access_course(user, course):True for System Manager/Moderator.
+True for course instructor/creator/evaluator where applicable.
+True for learner only if an active LMS Enrollment or assignment exists.
+False for Guest and unassigned users.
+
+Use this helper in every direct course, lesson, quiz, assignment, certificate, review, discussion, progress, and related-course API.
+Return PermissionError or 404-style responses for unassigned course access.
+
+Block direct data API leaks.Add permission query conditions so frappe.client.get_list cannot list unassigned LMS Course, Course Lesson, Course Chapter, LMS Enrollment, quiz, assignment, or progress records.
+Ensure direct frappe.client.get, get_count, insert LMS Enrollment, and set_value cannot bypass assignment rules.
+Restrict learner creation of LMS Enrollment; only admin invite/assignment APIs should create enrollment rows.
+
+Admin assignment updates.Use LMS Enrollment as the effective assigned-course record after invite acceptance.
+Add admin API to add/remove course assignments:Add creates missing enrollment.
+Remove disables/deletes enrollment according to product decision.
+Preserve progress if reassignment is likely; prefer an active flag over deletion if history matters.
+
+Reflect updated assignments immediately in course list, dashboard, lessons, and direct API access.
+
+Batch/program considerations.If batches/programs remain enabled, make them private too.
+Learners should only see batches/programs they are assigned/enrolled in.
+Batch courses must not leak unassigned course details unless batch enrollment intentionally grants course access.
+If not needed for premium private LMS, hide batch/program navigation for students.
+
+Database/Model Changes
+Add LMS User Invite.
+Add LMS User Invite Course child table.
+Optionally add active or assignment_status to LMS Enrollment if removals should preserve history.
+Add indexes:LMS User Invite.email
+LMS User Invite.token_hash
+LMS User Invite.status
+LMS Enrollment.member, course
+
+Add migration to:Disable guest access.
+Disable signup.
+Backfill existing enrolled students as assigned users.
+Optionally expire any old pending invites if introducing from scratch.
+
+Backend Permission Changes
+Guest cannot call LMS list/detail APIs except invite validation/acceptance.
+Students can list only assigned courses.
+Students can access details, outline, lessons, quizzes, assignments, certificates, reviews, discussions, and progress only for assigned courses.
+Students cannot create LMS Enrollment directly.
+Admin/moderator can create invites and update assignments.
+Instructor access remains scoped to courses they own/teach unless moderator.
+Public published must no longer imply learner visibility.
+Frontend Routing/UI Changes
+/ unauthenticated: redirect to /login.
+/ authenticated: show dashboard or assigned courses.
+Add /invite/:token.
+Remove guest course/batch browsing.
+Remove student public tabs and discovery fallbacks.
+Remove learner self-enrollment buttons.
+Replace member creation modal with invite + course assignment modal.
+Add assigned course management in member edit flow.
+Hide signup-related settings and public guest-access settings.
+Ensure sidebar only renders authenticated routes.
+Tests Needed
+Invite signup:
+Admin creates invite with email and selected courses.
+Email/token is generated.
+Invite setup creates/activates user, sets password, assigns roles, creates enrollments.
+Token cannot be reused.
+Expired/revoked token cannot be accepted.
+Invalid token returns safe error.
+
+No guest access:
+Guest visiting /lms, /lms/courses, course detail, lesson, batch list, batch detail redirects to /login.
+Guest API calls to course list/detail/lesson return auth error.
+Invite route remains accessible to guests.
+
+Disabled public signup:
+Public signup route/API is unavailable.
+LMS settings cannot re-enable self-signup.
+Login still works for existing invited users.
+
+Assigned course visibility:
+Student sees only assigned courses on dashboard and courses page.
+Student search only searches assigned courses.
+“Popular/published/upcoming” courses do not appear as fallback.
+Admin can update assignments and student list updates accordingly.
+
+Blocked direct access:
+Student cannot open unassigned course detail by URL.
+Student cannot fetch unassigned course via get_course_details.
+Student cannot fetch unassigned outline or lesson via get_course_outline / get_lesson.
+Student cannot create enrollment directly with frappe.client.insert.
+Student cannot access quiz, assignment, discussion, review, certificate, or progress APIs for unassigned courses.
+frappe.client.get_list and get_count do not leak unassigned course records.

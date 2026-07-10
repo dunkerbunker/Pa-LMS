@@ -245,7 +245,9 @@ const publishToggle = createResource({
 	},
 	onSuccess() {
 		toast.success(
-			course.data?.published ? __('Course unpublished') : __('Course published')
+			course.data?.published
+				? __('Course unpublished')
+				: __('Course published'),
 		)
 		course.reload()
 	},
@@ -253,7 +255,7 @@ const publishToggle = createResource({
 		const msg =
 			typeof err === 'string'
 				? err
-				: err.messages?.[0] ?? __('Could not update publish status')
+				: (err.messages?.[0] ?? __('Could not update publish status'))
 		toast.error(msg)
 	},
 }) as Resource<unknown>
@@ -329,11 +331,22 @@ watch(
 	() => props.courseName,
 	() => {
 		course.reload()
+	},
+)
+
+watch(
+	() => course.data,
+	() => {
+		if (!isAdmin.value && course.data && (!course.data?.name || !course.data?.membership)) {
+			router.push({
+				name: 'Courses',
+			})
+		}
 	}
 )
 
 watch(course, () => {
-	if (!isAdmin.value && !course.data?.published && !course.data?.upcoming) {
+	if (!isAdmin.value && course.data && (!course.data?.name || !course.data?.membership)) {
 		router.push({
 			name: 'Courses',
 		})
@@ -342,7 +355,7 @@ watch(course, () => {
 
 const isInstructor = (): boolean => {
 	let user_is_instructor = false
-	course.data?.instructors.forEach((instructor: CourseInstructorInfo) => {
+	course.data?.instructors?.forEach((instructor: CourseInstructorInfo) => {
 		if (!user_is_instructor && instructor.name == user.data?.name) {
 			user_is_instructor = true
 		}

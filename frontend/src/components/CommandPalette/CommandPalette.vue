@@ -68,7 +68,7 @@
 import { createResource, debounce, Dialog } from 'frappe-ui'
 import { nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { BookOpen, Briefcase, Users } from 'lucide-vue-next'
+import { BookOpen, Users } from 'lucide-vue-next'
 import CommandPaletteGroup from './CommandPaletteGroup.vue'
 
 const show = defineModel<boolean>({ required: true, default: false })
@@ -206,14 +206,6 @@ const jumpToOptions = ref([
 				icon: Users,
 				route: {
 					name: 'Batches',
-				},
-				isActive: false,
-			},
-			{
-				title: 'Jobs',
-				icon: Briefcase,
-				route: {
-					name: 'Jobs',
 				},
 				isActive: false,
 			},

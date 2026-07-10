@@ -1,7 +1,7 @@
 <template>
 	<Dialog v-model:open="showDialog">
 		<template #title>
-			<h2 class="text-xl-bold">{{ __('Install Frappe Learning') }}</h2>
+			<h2 class="text-xl-bold">{{ __('Install {0}').replace('{0}', appName) }}</h2>
 		</template>
 		<template #default>
 			<p>
@@ -29,7 +29,7 @@
 					class="mb-1 flex flex-row items-center justify-between px-3 text-center"
 				>
 					<span class="text-base-bold text-ink-gray-9">
-						{{ __('Install Frappe Learning') }}
+						{{ __('Install {0}').replace('{0}', appName) }}
 					</span>
 					<span class="inline-flex items-baseline">
 						<span
@@ -60,12 +60,15 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { Button, Dialog, Popover } from 'frappe-ui'
+import { sessionStore } from '@/stores/session'
 
 const deferredPrompt = ref(null)
 const showDialog = ref(false)
 const iosInstallMessage = ref(false)
+const { brand } = sessionStore()
+const appName = computed(() => brand.name || "Pa's Academy")
 
 const isIos = () => {
 	const userAgent = window.navigator.userAgent.toLowerCase()

@@ -14,6 +14,11 @@
     "root_login": "root",
     "root_password": "123",
     "host_name": "http://lms.test:8000",
+    "private_lms": true,
+    "lms_app_name": "Pa's Academy",
+    "allow_guest_access": false,
+    "disable_signup": true,
+    "website_signup_disabled": true,
     "monitor": 1,
     "server_script_enabled": true,
     "mute_emails": true

@@ -25,10 +25,59 @@
 			</div>
 		</template>
 		<div class="pb-4">
+			<div v-if="pendingInviteList.length" class="mb-6">
+				<div class="mb-2 text-sm font-medium text-ink-gray-7">
+					{{ __('Pending Invites') }}
+				</div>
+				<ul class="divide-y divide-outline-elevation-2">
+					<li
+						v-for="invite in pendingInviteList"
+						:key="invite.name"
+						class="flex items-center justify-between py-2"
+					>
+						<div class="flex items-center gap-x-3 min-w-0 flex-1">
+							<Avatar
+								:label="invite.email"
+								size="xl"
+								class="shrink-0"
+							/>
+							<div class="min-w-0 space-y-1">
+								<div class="truncate text-ink-gray-9">
+									{{ invite.email }}
+								</div>
+								<div class="truncate text-sm text-ink-gray-7">
+									{{ __('Expires {0}').format(formatDate(invite.expires_at)) }}
+								</div>
+							</div>
+						</div>
+						<div class="flex shrink-0 items-center gap-2 ms-3">
+							<span
+								class="flex items-center text-ink-gray-9 gap-x-1 bg-surface-gray-2 px-2 py-1.5 rounded-md"
+							>
+								<span class="lucide-mail size-4" />
+								<span class="text-sm">{{ __('Pending') }}</span>
+							</span>
+							<Dropdown
+								:options="getInviteMenuOptions(invite)"
+								placement="right"
+							>
+								<Button variant="ghost" class="!px-1.5">
+									<template #icon>
+										<span
+											class="lucide-more-horizontal size-4 text-ink-gray-7"
+										/>
+									</template>
+								</Button>
+							</Dropdown>
+						</div>
+					</li>
+				</ul>
+			</div>
 			<div v-if="displayedMembers.length">
 				<ul class="divide-y divide-outline-elevation-2">
 					<li
 						v-for="member in displayedMembers"
+						:key="member.name"
 						class="flex items-center justify-between py-2 cursor-pointer"
 					>
 						<div
@@ -94,7 +143,7 @@
 				</div>
 			</div>
 			<EmptyStateLayout
-				v-else
+				v-if="!displayedMembers.length && !pendingInviteList.length"
 				name="Members"
 				:description="__('Add one to get started.')"
 				icon="lucide-user"
@@ -162,6 +211,14 @@ type Member = {
 	user_image?: string
 }
 
+type PendingInvite = {
+	name: string
+	email: string
+	first_name?: string
+	last_name?: string
+	expires_at: string
+}
+
 const router = useRouter()
 const show = defineModel('show')
 const search = ref('')
@@ -178,9 +235,11 @@ const roleOptions = [
 
 const displayedMembers = computed(() => memberList.value)
 const memberList = ref<Member[]>([])
+const pendingInviteList = ref<PendingInvite[]>([])
 const hasNextPage = ref(false)
 const showNewMember = ref(false)
 const user = inject<User | null>('$user')
+const dayjs = inject<any>('$dayjs')
 const { updateOnboardingStep } = useOnboarding('learning')
 const { capture } = useTelemetry()
 
@@ -216,10 +275,24 @@ const members = createResource({
 	auto: true,
 })
 
+const pendingInvites = createResource({
+	url: 'lms.lms.api.get_pending_invites',
+	makeParams: () => {
+		return {
+			search: search.value,
+		}
+	},
+	onSuccess(data: PendingInvite[]) {
+		pendingInviteList.value = data
+	},
+	auto: true,
+})
+
 const refreshMembers = () => {
 	memberList.value = []
 	start.value = 0
 	members.reload()
+	pendingInvites.reload()
 }
 
 const openProfile = (username: string) => {
@@ -265,6 +338,30 @@ const openNewMember = () => {
 	showNewMember.value = true
 }
 
+const formatDate = (date: string) => {
+	return dayjs ? dayjs(date).format('D MMM YYYY') : date
+}
+
+const resendInvite = async (invite: PendingInvite) => {
+	try {
+		await call('lms.lms.api.resend_invite', { invite_name: invite.name })
+		toast.success(__('Invite resent'))
+		pendingInvites.reload()
+	} catch (err: any) {
+		toast.error(cleanError(err.messages?.[0]) || __('Unable to resend invite'))
+	}
+}
+
+const revokeInvite = async (invite: PendingInvite) => {
+	try {
+		await call('lms.lms.api.revoke_invite', { invite_name: invite.name })
+		toast.success(__('Invite revoked'))
+		pendingInvites.reload()
+	} catch (err: any) {
+		toast.error(cleanError(err.messages?.[0]) || __('Unable to revoke invite'))
+	}
+}
+
 const openDeleteDialog = (member: Member) => {
 	memberToDelete.value = member
 	showDeleteDialog.value = true
@@ -293,6 +390,18 @@ const getMemberMenuOptions = (member: Member) => [
 		label: __('Delete user'),
 		theme: 'red',
 		onClick: () => openDeleteDialog(member),
+	},
+]
+
+const getInviteMenuOptions = (invite: PendingInvite) => [
+	{
+		label: __('Resend invite'),
+		onClick: () => resendInvite(invite),
+	},
+	{
+		label: __('Revoke invite'),
+		theme: 'red',
+		onClick: () => revokeInvite(invite),
 	},
 ]
 </script>

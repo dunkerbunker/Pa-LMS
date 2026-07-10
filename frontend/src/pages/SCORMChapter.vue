@@ -23,13 +23,10 @@
 				<div class="mb-4">
 					{{
 						__(
-							'You are not enrolled in this course. Please enroll to access this lesson.'
+							'This lesson is only available through an assigned course invite.',
 						)
 					}}
 				</div>
-				<Button variant="solid" @click="enrollStudent()">
-					{{ __('Start Learning') }}
-				</Button>
 			</div>
 		</div>
 	</div>
@@ -37,7 +34,6 @@
 <script setup>
 import {
 	Breadcrumbs,
-	Button,
 	call,
 	createDocumentResource,
 	createListResource,
@@ -175,20 +171,6 @@ const progress = createResource({
 		readyToRender.value = true
 	},
 })
-
-const enrollStudent = () => {
-	enrollment.insert.submit(
-		{
-			course: props.courseName,
-			member: user.data?.name,
-		},
-		{
-			onSuccess(data) {
-				window.location.reload()
-			},
-		}
-	)
-}
 
 const setupSCORMAPI = () => {
 	window.API_1484_11 = {

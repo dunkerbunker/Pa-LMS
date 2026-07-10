@@ -35,47 +35,9 @@
 					</router-link>
 					<CertificationLinks :courseName="course.data.name" class="w-full" />
 				</div>
-				<router-link
-					v-else-if="course.data?.paid_course && !isAdmin"
-					:to="{
-						name: 'Billing',
-						params: {
-							type: 'course',
-							name: course.data.name,
-						},
-					}"
-				>
-					<Button variant="solid" size="md" class="w-full mb-8">
-						<template #prefix>
-							<span class="lucide-credit-card size-4" />
-						</template>
-						<span>
-							{{ __('Buy this course') }}
-						</span>
-					</Button>
-				</router-link>
-				<Badge
-					v-else-if="course.data?.disable_self_learning && !isAdmin"
-					theme="blue"
-					size="lg"
-					class="mb-4"
-				>
-					{{ __('Contact the Administrator to enroll for this course') }}
+				<Badge v-else-if="!isAdmin" theme="gray" size="lg" class="mb-4">
+					{{ __('Invite required') }}
 				</Badge>
-				<Button
-					v-else-if="!isAdmin"
-					@click="enrollStudent()"
-					variant="solid"
-					class="w-full mb-8"
-					size="md"
-				>
-					<template #prefix>
-						<span class="lucide-book-text size-4" />
-					</template>
-					<span>
-						{{ __('Enroll Now') }}
-					</span>
-				</Button>
 				<Button
 					v-if="canGetCertificate"
 					@click="fetchCertificate()"
@@ -144,11 +106,9 @@
 </template>
 <script setup lang="ts">
 import { computed, inject } from 'vue'
-import { Badge, Button, call, createResource, toast } from 'frappe-ui'
-import { useRouter } from 'vue-router'
+import { Badge, Button, createResource } from 'frappe-ui'
 import CertificationLinks from '@/components/CertificationLinks.vue'
 import VideoPreview from '@/components/VideoPreview.vue'
-import { useTelemetry } from 'frappe-ui/frappe'
 import type {
 	CourseDetails,
 	CourseInstructorInfo,
@@ -156,56 +116,16 @@ import type {
 	SessionUser,
 } from '@/types/api'
 
-const router = useRouter()
 const user = inject<SessionUser>('$user')!
 const readOnlyMode = (window as Window & { read_only_mode?: boolean })
 	.read_only_mode
-const { capture } = useTelemetry()
 
 const props = withDefaults(
 	defineProps<{
 		course: Resource<CourseDetails | null>
 	}>(),
-	{}
+	{},
 )
-
-function enrollStudent() {
-	if (!user.data) {
-		toast.warning(__('You need to login first to enroll for this course'))
-		setTimeout(() => {
-			window.location.href = `/login?redirect-to=${window.location.pathname}`
-		}, 500)
-		return
-	}
-	const courseName = props.course.data?.name
-	if (!courseName) return
-	call('frappe.client.insert', {
-		doc: {
-			doctype: 'LMS Enrollment',
-			course: courseName,
-			member: user.data.name,
-		},
-	})
-		.then(() => {
-			capture('enrolled_in_course', { course: courseName })
-			toast.success(__('You have been enrolled in this course'))
-			setTimeout(() => {
-				router.push({
-					name: 'Lesson',
-					params: {
-						courseName,
-						chapterNumber: 1,
-						lessonNumber: 1,
-					},
-				})
-			}, 1000)
-		})
-		.catch((err: { messages?: string[] } | string) => {
-			const msg = typeof err === 'string' ? err : err.messages?.[0] ?? 'Error'
-			toast.warning(__(msg))
-			console.error(err)
-		})
-}
 
 const is_instructor = (): boolean => {
 	let user_is_instructor = false
@@ -233,17 +153,17 @@ const enrolledLabel = computed<string>(() => {
 const hasCourseStats = computed<boolean>(() =>
 	Boolean(
 		enrolledLabel.value ||
-			props.course.data?.video_link ||
-			props.course.data?.lessons ||
-			(props.course.data?.quiz_count ?? 0) > 0 ||
-			props.course.data?.enable_certification
-	)
+		props.course.data?.video_link ||
+		props.course.data?.lessons ||
+		(props.course.data?.quiz_count ?? 0) > 0 ||
+		props.course.data?.enable_certification,
+	),
 )
 
 const canGetCertificate = computed<boolean>(() => {
 	return Boolean(
 		props.course.data?.enable_certification &&
-			(props.course.data?.membership?.progress ?? 0) >= 100
+		(props.course.data?.membership?.progress ?? 0) >= 100,
 	)
 })
 
@@ -259,7 +179,7 @@ const certificate = createResource({
 			`/api/method/frappe.utils.print_format.download_pdf?doctype=LMS+Certificate&name=${
 				data.name
 			}&format=${encodeURIComponent(data.template)}`,
-			'_blank'
+			'_blank',
 		)
 	},
 }) as Resource<{ name: string; template: string } | null>

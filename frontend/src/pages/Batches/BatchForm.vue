@@ -85,44 +85,10 @@
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
 						<BooleanSwitch
 							size="sm"
-							v-model="batchDetail.doc.allow_self_enrollment"
-							:label="__('Allow Self Enrollment')"
-							:description="
-								__('Allow users to enroll in this batch on their own.')
-							"
-						/>
-						<BooleanSwitch
-							size="sm"
 							v-model="batchDetail.doc.certification"
 							:label="__('Certification')"
 							:description="__('Issue certificates to batch participants.')"
 						/>
-						<div class="space-y-4">
-							<BooleanSwitch
-								size="sm"
-								v-model="batchDetail.doc.paid_batch"
-								:label="__('Paid Batch')"
-								:description="__('Charge a fee for batch enrollment.')"
-							/>
-							<div
-								v-if="batchDetail.doc.paid_batch"
-								class="grid grid-cols-2 gap-3"
-							>
-								<FormControl
-									v-model="batchDetail.doc.amount"
-									:label="__('Amount')"
-									type="number"
-									variant="outline"
-								/>
-								<Link
-									doctype="Currency"
-									v-model="batchDetail.doc.currency"
-									:filters="{ enabled: 1 }"
-									:label="__('Currency')"
-									variant="outline"
-								/>
-							</div>
-						</div>
 						<div class="space-y-4">
 							<BooleanSwitch
 								size="sm"
@@ -472,7 +438,7 @@ watch(
 		updateBatchData()
 		getMetaInfo('batches', batchDetail.doc?.name, meta)
 	},
-	{ deep: true }
+	{ deep: true },
 )
 
 const updateBatchData = (): void => {
@@ -542,13 +508,13 @@ const updateBatch = (opts: { silent?: boolean } = {}): void => {
 			},
 			onError(err: { messages?: string[] } | string) {
 				const msg =
-					typeof err === 'string' ? err : err.messages?.[0] ?? __('Error')
+					typeof err === 'string' ? err : (err.messages?.[0] ?? __('Error'))
 				// Autosave failures stay quiet; the orange "Not Saved" badge remains
 				// (isDirty is untouched) so the change isn't silently lost.
 				if (!opts.silent) toast.error(msg)
 				console.error(err)
 			},
-		}
+		},
 	)
 }
 
@@ -556,7 +522,7 @@ const deleteBatch = (): void => {
 	$dialog({
 		title: __('Confirm your action to delete'),
 		message: __(
-			'Deleting this batch will also delete all its data including enrolled students, linked courses, assessments, feedback and discussions. Are you sure you want to continue?'
+			'Deleting this batch will also delete all its data including enrolled students, linked courses, assessments, feedback and discussions. Are you sure you want to continue?',
 		),
 		actions: [
 			{
@@ -608,7 +574,7 @@ const timezoneResource = createResource({
 }) as Resource<string[]>
 
 const timezoneOptions = computed(() =>
-	(timezoneResource.data || []).map((tz: string) => ({ label: tz, value: tz }))
+	(timezoneResource.data || []).map((tz: string) => ({ label: tz, value: tz })),
 )
 
 const mediumOptions = computed(() => {

@@ -2,10 +2,9 @@
  * Tests for NewMemberModal.vue — the single component reused for BOTH adding a
  * new member and editing an existing member's roles.
  *
- * The goal is to pin every branch: add vs edit, required-email, the role
- * allocation on add, and (most importantly) the role-DIFF on edit — only
- * changed roles should hit `save_role`, with the correct value, and a no-op
- * edit should still succeed without any network calls.
+ * The goal is to pin every branch: add vs edit, required-email, invite
+ * creation on add, and the role-DIFF on edit — only changed roles should hit
+ * `save_role`, with the correct value.
  */
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
@@ -75,6 +74,20 @@ vi.mock('@/components/Controls/BooleanSwitch.vue', () => ({
 	},
 }))
 
+vi.mock('@/components/Controls/MultiLink.vue', () => ({
+	default: {
+		props: ['modelValue', 'label', 'doctype', 'placeholder'],
+		emits: ['update:modelValue'],
+		template: `
+			<button
+				:data-testid="'courses-' + label"
+				:data-value="(modelValue || []).join(',')"
+				@click="$emit('update:modelValue', ['course-a', 'course-b'])"
+			/>
+		`,
+	},
+}))
+
 vi.mock('@/utils', () => ({ cleanError: (e: unknown) => e }))
 
 // `__` (translation) is a bare global used in the component's <script>, not just
@@ -96,7 +109,7 @@ const open = async (wrapper: ReturnType<typeof mountModal>) => {
 
 const clickAction = async (
 	wrapper: ReturnType<typeof mountModal>,
-	label: string
+	label: string,
 ) => {
 	await wrapper.get(`[data-testid="action-${label}"]`).trigger('click')
 	await flushPromises()
@@ -104,6 +117,12 @@ const clickAction = async (
 
 const saveRoleCalls = () =>
 	callMock.mock.calls.filter((c) => c[0] === 'lms.lms.api.save_role')
+const inviteCalls = () =>
+	callMock.mock.calls.filter((c) => c[0] === 'lms.lms.api.create_invite')
+const assignmentCalls = () =>
+	callMock.mock.calls.filter(
+		(c) => c[0] === 'lms.lms.api.update_user_course_assignments',
+	)
 
 beforeEach(() => {
 	callMock.mockReset()
@@ -134,57 +153,50 @@ describe('NewMemberModal — add mode', () => {
 		expect(closeMock).not.toHaveBeenCalled()
 	})
 
-	it('inserts the user then assigns only the selected roles, emits created, closes', async () => {
+	it('creates an invite with selected roles, emits created, closes', async () => {
 		const w = mountModal()
 		await open(w)
-		callMock.mockResolvedValueOnce({ name: 'jane@doe.com' }) // insert
-		await w
-			.get('[data-testid="field-Email"]')
-			.setValue('jane@doe.com')
+		callMock.mockResolvedValueOnce({ name: 'invite-1' })
+		await w.get('[data-testid="field-Email"]').setValue('jane@doe.com')
 		await w.get('[data-testid="role-Moderator"]').trigger('click')
 		await clickAction(w, 'Add')
 
-		expect(callMock).toHaveBeenCalledWith('frappe.client.insert', {
-			doc: {
-				doctype: 'User',
-				email: 'jane@doe.com',
-				first_name: undefined,
-				last_name: undefined,
-			},
+		expect(inviteCalls()).toHaveLength(1)
+		expect(inviteCalls()[0][1]).toEqual({
+			email: 'jane@doe.com',
+			first_name: undefined,
+			last_name: undefined,
+			roles: ['Moderator'],
+			courses: [],
 		})
-		const roleCalls = saveRoleCalls()
-		expect(roleCalls).toHaveLength(1)
-		expect(roleCalls[0][1]).toEqual({
-			user: 'jane@doe.com',
-			role: 'Moderator',
-			value: 1,
-		})
-		expect(w.emitted('created')?.[0]?.[0]).toEqual({ name: 'jane@doe.com' })
+		expect(saveRoleCalls()).toHaveLength(0)
+		expect(w.emitted('created')?.[0]?.[0]).toEqual({ name: 'invite-1' })
 		expect(closeMock).toHaveBeenCalled()
 	})
 
-	it('assigns multiple selected roles with value 1', async () => {
+	it('includes multiple selected roles and courses in the invite', async () => {
 		const w = mountModal()
 		await open(w)
-		callMock.mockResolvedValueOnce({ name: 'x@y.com' })
+		callMock.mockResolvedValueOnce({ name: 'invite-2' })
 		await w.get('[data-testid="field-Email"]').setValue('x@y.com')
 		await w.get('[data-testid="role-Moderator"]').trigger('click')
 		await w.get('[data-testid="role-Student"]').trigger('click')
+		await w.get('[data-testid="courses-Assigned Courses"]').trigger('click')
 		await clickAction(w, 'Add')
-		const roles = saveRoleCalls().map((c) => c[1].role)
+		const roles = inviteCalls()[0][1].roles
 		expect(roles).toContain('Moderator')
 		expect(roles).toContain('LMS Student')
-		expect(saveRoleCalls().every((c) => c[1].value === 1)).toBe(true)
+		expect(inviteCalls()[0][1].courses).toEqual(['course-a', 'course-b'])
 	})
 
 	it('pre-applies defaultRoles when opened', async () => {
 		const w = mountModal({ defaultRoles: ['lms_student'] })
 		await open(w)
 		expect(
-			w.get('[data-testid="role-Student"]').attributes('data-checked')
+			w.get('[data-testid="role-Student"]').attributes('data-checked'),
 		).toBe('true')
 		expect(
-			w.get('[data-testid="role-Moderator"]').attributes('data-checked')
+			w.get('[data-testid="role-Moderator"]').attributes('data-checked'),
 		).toBe('false')
 	})
 
@@ -223,13 +235,13 @@ describe('NewMemberModal — edit mode', () => {
 		})
 		await open(w)
 		expect(
-			w.get('[data-testid="role-Moderator"]').attributes('data-checked')
+			w.get('[data-testid="role-Moderator"]').attributes('data-checked'),
 		).toBe('true')
 		expect(
-			w.get('[data-testid="role-Evaluator"]').attributes('data-checked')
+			w.get('[data-testid="role-Evaluator"]').attributes('data-checked'),
 		).toBe('true')
 		expect(
-			w.get('[data-testid="role-Course Creator"]').attributes('data-checked')
+			w.get('[data-testid="role-Course Creator"]').attributes('data-checked'),
 		).toBe('false')
 	})
 
@@ -238,6 +250,7 @@ describe('NewMemberModal — edit mode', () => {
 		await open(w)
 		await clickAction(w, 'Save')
 		expect(saveRoleCalls()).toHaveLength(0)
+		expect(assignmentCalls()).toHaveLength(1)
 		expect(w.emitted('updated')).toBeTruthy()
 		expect(closeMock).toHaveBeenCalled()
 	})
@@ -253,6 +266,7 @@ describe('NewMemberModal — edit mode', () => {
 			role: 'Course Creator',
 			value: 1,
 		})
+		expect(assignmentCalls()).toHaveLength(1)
 	})
 
 	it('removing an existing role calls save_role(role, 0)', async () => {
@@ -276,6 +290,7 @@ describe('NewMemberModal — edit mode', () => {
 		await ev.trigger('click') // off again -> back to initial (false)
 		await clickAction(w, 'Save')
 		expect(saveRoleCalls()).toHaveLength(0)
+		expect(assignmentCalls()).toHaveLength(1)
 	})
 
 	it('applies multiple diffs with correct values', async () => {
@@ -285,7 +300,7 @@ describe('NewMemberModal — edit mode', () => {
 		await w.get('[data-testid="role-Course Creator"]').trigger('click') // add
 		await clickAction(w, 'Save')
 		const byRole = Object.fromEntries(
-			saveRoleCalls().map((c) => [c[1].role, c[1].value])
+			saveRoleCalls().map((c) => [c[1].role, c[1].value]),
 		)
 		expect(byRole).toEqual({ Moderator: 0, 'Course Creator': 1 })
 	})
@@ -297,10 +312,10 @@ describe('NewMemberModal — edit mode', () => {
 		await w.setProps({ editMember: editMember(['Batch Evaluator']) })
 		await open(w)
 		expect(
-			w.get('[data-testid="role-Moderator"]').attributes('data-checked')
+			w.get('[data-testid="role-Moderator"]').attributes('data-checked'),
 		).toBe('false')
 		expect(
-			w.get('[data-testid="role-Evaluator"]').attributes('data-checked')
+			w.get('[data-testid="role-Evaluator"]').attributes('data-checked'),
 		).toBe('true')
 	})
 
@@ -320,7 +335,7 @@ describe('NewMemberModal — edit mode', () => {
 		})
 		await open(w)
 		expect(
-			w.get('[data-testid="role-Student"]').attributes('data-checked')
+			w.get('[data-testid="role-Student"]').attributes('data-checked'),
 		).toBe('true')
 		await w.get('[data-testid="role-Student"]').trigger('click') // remove
 		await clickAction(w, 'Save')
@@ -346,7 +361,7 @@ describe('NewMemberModal — adversarial / state isolation', () => {
 		expect(w.get('[data-testid="title"]').text()).toBe('Add New Member')
 		expect(w.find('[data-testid="field-First Name"]').exists()).toBe(true)
 		expect(
-			w.get('[data-testid="role-Moderator"]').attributes('data-checked')
+			w.get('[data-testid="role-Moderator"]').attributes('data-checked'),
 		).toBe('false')
 		const email = w.get('[data-testid="field-Email"]')
 		expect((email.element as HTMLInputElement).value).toBe('')
@@ -373,5 +388,6 @@ describe('NewMemberModal — adversarial / state isolation', () => {
 		btn.trigger('click')
 		await flushPromises()
 		expect(saveRoleCalls()).toHaveLength(1)
+		expect(assignmentCalls()).toHaveLength(1)
 	})
 })

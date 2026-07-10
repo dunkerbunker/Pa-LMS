@@ -34,26 +34,11 @@
 					<div class="mt-1 mb-4 text-ink-gray-7">
 						{{
 							__(
-								'This lesson is not available for preview. Please enroll in the course to access it.'
+								'This lesson is only available through an assigned course invite.',
 							)
 						}}
 					</div>
-					<Button
-						v-if="user.data && !lesson.data.disable_self_learning"
-						@click="enrollStudent()"
-						variant="solid"
-					>
-						{{ __('Start Learning') }}
-					</Button>
-					<Badge
-						theme="blue"
-						size="lg"
-						v-else-if="lesson.data.disable_self_learning"
-						class="mt-2"
-					>
-						{{ __('Contact the Administrator to enroll for this course.') }}
-					</Badge>
-					<Button v-else @click="redirectToLogin()">
+					<Button v-if="!user.data" @click="redirectToLogin()">
 						<template #prefix>
 							<span class="lucide-log-in size-4" />
 						</template>
@@ -314,7 +299,6 @@
 </template>
 <script setup>
 import {
-	Badge,
 	Breadcrumbs,
 	Button,
 	call,
@@ -507,7 +491,7 @@ const setupLesson = (data) => {
 	)
 		instructorEditor.value = renderEditor(
 			'instructor-content',
-			data.instructor_content
+			data.instructor_content,
 		)
 	editor.value?.isReady.then(() => {
 		checkIfDiscussionsAllowed()
@@ -571,7 +555,7 @@ const markProgress = () => {
 				progressSubmitting = false
 				console.error(err)
 			},
-		}
+		},
 	)
 }
 
@@ -661,7 +645,7 @@ watch(
 	[() => route.params.chapterNumber, () => route.params.lessonNumber],
 	async (
 		[newChapterNumber, newLessonNumber],
-		[oldChapterNumber, oldLessonNumber]
+		[oldChapterNumber, oldLessonNumber],
 	) => {
 		if (newChapterNumber || newLessonNumber) {
 			plyrSources.value = []
@@ -671,7 +655,7 @@ watch(
 			checkIfDiscussionsAllowed()
 			checkQuiz()
 		}
-	}
+	},
 )
 
 const resetLessonState = (newChapterNumber, newLessonNumber) => {
@@ -752,7 +736,7 @@ watch(
 		const hasVideoListener =
 			plyrSources.value.length > 0 || !!document.querySelector('video')
 		const enforceVideo = Number(
-			settingsStore.settings?.data?.enforce_video_completion ?? 0
+			settingsStore.settings?.data?.enforce_video_completion ?? 0,
 		)
 		// When the lesson has video AND enforcement is on, suppress dwell so
 		// completion is gated on play-to-end. When enforcement is off, dwell
@@ -775,11 +759,11 @@ watch(
 						if (gen !== fallbackGeneration) return
 						fallbackToDwellTimer('html5-video-error')
 					},
-					{ once: true }
+					{ once: true },
 				)
 			})
 		}
-	}
+	},
 )
 
 const getPlyrSource = async () => {
@@ -787,7 +771,7 @@ const getPlyrSource = async () => {
 	if (plyrSources.value.length == 0) {
 		plyrSources.value = await enablePlyr()
 		const enforceVideo = Number(
-			settingsStore.settings?.data?.enforce_video_completion ?? 0
+			settingsStore.settings?.data?.enforce_video_completion ?? 0,
 		)
 		if (
 			shouldAttachVideoFallback({
@@ -804,7 +788,7 @@ const getPlyrSource = async () => {
 				player.on('error', (event) => {
 					if (gen !== fallbackGeneration) return
 					fallbackToDwellTimer(
-						'plyr-error: ' + (event?.detail?.message || 'unknown')
+						'plyr-error: ' + (event?.detail?.message || 'unknown'),
 					)
 				})
 				setTimeout(() => {
@@ -900,8 +884,8 @@ const fallbackToDwellTimer = (reason) => {
 	console.warn('[Lesson] video fallback engaged:', reason)
 	toast.warning(
 		__(
-			'Video failed to load — this lesson will still be marked complete after you spend some time on it.'
-		)
+			'Video failed to load — this lesson will still be marked complete after you spend some time on it.',
+		),
 	)
 	clearInterval(timerInterval)
 	timer.value = 0
@@ -911,7 +895,7 @@ const fallbackToDwellTimer = (reason) => {
 const startTimer = () => {
 	if (!lesson.data?.membership) return
 	const dwell = resolveDwellSeconds(
-		settingsStore.settings?.data?.lesson_dwell_time
+		settingsStore.settings?.data?.lesson_dwell_time,
 	)
 	if (dwell === null) return
 	timerInterval = setInterval(() => {
@@ -967,34 +951,6 @@ const lessonHasVideo = computed(() => hasVideoContent(lesson.data))
 const allowInstructorContent = () => {
 	if (window.read_only_mode) return false
 	return isAdmin.value
-}
-
-const enrollment = createResource({
-	url: 'frappe.client.insert',
-	makeParams() {
-		return {
-			doc: {
-				doctype: 'LMS Enrollment',
-				course: props.courseName,
-				member: user.data?.name,
-			},
-		}
-	},
-})
-
-const enrollStudent = () => {
-	enrollment.submit(
-		{},
-		{
-			onSuccess() {
-				window.location.reload()
-			},
-			onError(err) {
-				toast.error(__(err.messages?.[0] || err))
-				console.error(err)
-			},
-		}
-	)
 }
 
 const toggleInlineMenu = async () => {
@@ -1088,7 +1044,7 @@ watch(allowDiscussions, () => {
 
 const redirectToLogin = () => {
 	window.location.href = `/login?redirect-to=${getLmsRoute(
-		`courses/${props.courseName}`
+		`courses/${props.courseName}`,
 	)}`
 }
 

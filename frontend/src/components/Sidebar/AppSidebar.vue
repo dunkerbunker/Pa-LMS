@@ -201,12 +201,6 @@
 							"
 						/>
 					</Tooltip>
-					<Tooltip :text="__('Powered by Frappe Learning')">
-						<span
-							class="lucide-zap size-4 text-ink-gray-7 cursor-pointer"
-							@click="redirectToWebsite()"
-						/>
-					</Tooltip>
 				</div>
 				<Tooltip
 					:text="
@@ -232,13 +226,12 @@
 			v-model="showHelpModal"
 			v-model:articles="articles"
 			appName="learning"
-			title="Frappe Learning"
+			:title="brand.name || defaultAppName"
 			:logo="LMSLogo"
 			:afterSkip="(step) => capture('onboarding_step_skipped_' + step)"
 			:afterSkipAll="() => capture('onboarding_steps_skipped')"
 			:afterReset="(step) => capture('onboarding_step_reset_' + step)"
 			:afterResetAll="() => capture('onboarding_steps_reset')"
-			docsLink="https://docs.frappe.io/learning"
 		/>
 		<IntermediateStepModal
 			v-model="showIntermediateModal"
@@ -299,7 +292,8 @@ import CollapseSidebar from '@/components/Icons/CollapseSidebar.vue'
 import SidebarLink from '@/components/Sidebar/SidebarLink.vue'
 import CommandPalette from '@/components/CommandPalette/CommandPalette.vue'
 
-const { user } = sessionStore()
+const { user, brand } = sessionStore()
+const defaultAppName = "Pa's Academy"
 const { userResource } = usersStore()
 let sidebarStore = useSidebar()
 const socket = inject('$socket')
@@ -668,10 +662,6 @@ const updateSidebarLinks = () => {
 	sidebarLinks.value = getSidebarLinks()
 	updateSidebarLinksVisibility()
 	updateUnreadCount()
-}
-
-const redirectToWebsite = () => {
-	window.open('https://frappe.io/learning', '_blank')
 }
 
 const isStudent = computed(() => {

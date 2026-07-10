@@ -66,6 +66,12 @@
 						/>
 					</div>
 				</div>
+				<MultiLink
+					v-model="courseAssignments"
+					doctype="LMS Course"
+					:label="__('Assigned Courses')"
+					:placeholder="__('Select courses')"
+				/>
 			</div>
 		</template>
 	</Dialog>
@@ -74,6 +80,7 @@
 <script setup lang="ts">
 import { call, Dialog, FormControl, toast } from 'frappe-ui'
 import BooleanSwitch from '@/components/Controls/BooleanSwitch.vue'
+import MultiLink from '@/components/Controls/MultiLink.vue'
 import { computed, reactive, ref, watch } from 'vue'
 import { cleanError } from '@/utils'
 
@@ -104,6 +111,8 @@ const member = reactive({
 	first_name: '',
 	last_name: '',
 })
+const courseAssignments = ref<string[]>([])
+const initialCourseAssignments = ref<string[]>([])
 
 const roles = reactive({
 	moderator: false,
@@ -118,6 +127,8 @@ const resetForm = () => {
 	member.email = ''
 	member.first_name = ''
 	member.last_name = ''
+	courseAssignments.value = []
+	initialCourseAssignments.value = []
 	applyDefaultRoles()
 }
 
@@ -138,6 +149,9 @@ const loadMember = () => {
 		roles[key] = current.includes(ROLE_MAP[key])
 		initialRoles[key] = roles[key]
 	}
+	courseAssignments.value = []
+	initialCourseAssignments.value = []
+	loadCourseAssignments()
 }
 
 watch(show, (isOpen) => {
@@ -151,15 +165,31 @@ const submit = (close?: () => void) => {
 	return isEdit.value ? saveRoles(close) : addMember(close)
 }
 
-const assignRoles = async (userEmail: string) => {
-	const selectedRoles = Object.entries(roles).filter(([_, checked]) => checked)
+const selectedRoleNames = () =>
+	Object.entries(roles)
+		.filter(([_, checked]) => checked)
+		.map(([key]) => ROLE_MAP[key])
 
-	for (const [key, _] of selectedRoles) {
-		await call('lms.lms.api.save_role', {
-			user: userEmail,
-			role: ROLE_MAP[key],
-			value: 1,
+const copyInviteLink = async (inviteUrl: string) => {
+	try {
+		await navigator.clipboard?.writeText(inviteUrl)
+		return true
+	} catch {
+		return false
+	}
+}
+
+const loadCourseAssignments = async () => {
+	if (!props.editMember?.name) return
+	try {
+		const assigned = await call('lms.lms.api.get_user_course_assignments', {
+			user: props.editMember.name,
 		})
+		courseAssignments.value = Array.isArray(assigned) ? assigned : []
+		initialCourseAssignments.value = [...courseAssignments.value]
+	} catch {
+		courseAssignments.value = []
+		initialCourseAssignments.value = []
 	}
 }
 
@@ -171,23 +201,32 @@ const addMember = async (close?: () => void) => {
 
 	submitting.value = true
 	try {
-		const user = await call('frappe.client.insert', {
-			doc: {
-				doctype: 'User',
-				email: member.email.trim(),
-				first_name: member.first_name.trim() || undefined,
-				last_name: member.last_name.trim() || undefined,
-			},
+		const invite = await call('lms.lms.api.create_invite', {
+			email: member.email.trim(),
+			first_name: member.first_name.trim() || undefined,
+			last_name: member.last_name.trim() || undefined,
+			roles: selectedRoleNames(),
+			courses: courseAssignments.value,
 		})
 
-		await assignRoles(user.name)
-
-		toast.success(__('Member added successfully'))
-		emit('created', user)
+		if (invite?.email_sent === false && invite?.invite_url) {
+			const copied = await copyInviteLink(invite.invite_url)
+			toast.success(
+				copied
+					? __('Invite created. Link copied to clipboard.')
+					: __('Invite created. Email is not configured. Invite link: {0}').replace(
+							'{0}',
+							invite.invite_url,
+						),
+			)
+		} else {
+			toast.success(__('Invite sent successfully'))
+		}
+		emit('created', invite)
 		resetForm()
 		close?.()
 	} catch (err: any) {
-		toast.error(cleanError(err.messages?.[0]) || __('Unable to add member'))
+		toast.error(cleanError(err.messages?.[0]) || __('Unable to send invite'))
 	} finally {
 		submitting.value = false
 	}
@@ -207,6 +246,12 @@ const saveRoles = async (close?: () => void) => {
 				})
 			}
 		}
+
+		await call('lms.lms.api.update_user_course_assignments', {
+			user: props.editMember.name,
+			courses: courseAssignments.value,
+		})
+		initialCourseAssignments.value = [...courseAssignments.value]
 
 		toast.success(__('Member updated'))
 		emit('updated')

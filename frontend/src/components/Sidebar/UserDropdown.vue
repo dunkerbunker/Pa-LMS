@@ -27,14 +27,7 @@
 						"
 					>
 						<div class="text-base-medium text-ink-gray-9 leading-none">
-							<span
-								v-if="
-									branding.data?.app_name && branding.data?.app_name != 'Frappe'
-								"
-							>
-								{{ branding.data?.app_name }}
-							</span>
-							<span v-else> Learning </span>
+							<span>{{ appName }}</span>
 						</div>
 						<div
 							v-if="userResource.data"
@@ -88,6 +81,9 @@ let { isLoggedIn } = sessionStore()
 const showSettingsModal = ref(false)
 const frappeCloudBaseEndpoint = 'https://frappecloud.com'
 const $dialog = createDialog
+const appName = computed(
+	() => branding.data?.app_name || "Pa's Academy"
+)
 
 const props = defineProps({
 	isCollapsed: {
@@ -235,7 +231,7 @@ const clearDemoDataConfirmation = () => {
 	$dialog({
 		title: __('Confirm clearing demo data?'),
 		message: __(
-			'Are you sure you want to clear the demo data? This would delete the course "A guide  to Frappe Learning" along with all its associated data. This action cannot be undone.'
+			'Are you sure you want to clear the demo data? This would delete the sample course and all its associated data. This action cannot be undone.'
 		),
 		actions: [
 			{
