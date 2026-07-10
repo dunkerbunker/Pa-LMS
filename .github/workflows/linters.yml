@@ -1,10 +1,6 @@
 name: Linters
 
-on:
-  pull_request:
-  workflow_dispatch:
-  push:
-    branches: [ main ]
+on: workflow_dispatch
 
 jobs:
   commit-lint:

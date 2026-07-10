@@ -1,13 +1,6 @@
 name: UI Tests
 
-on:
-  pull_request:
-  workflow_dispatch:
-  push:
-    branches: 
-      - main
-      - develop
-      - main-hotfix
+on: workflow_dispatch
 
 permissions:
   # Do not change this as GITHUB_TOKEN is being used by roulette

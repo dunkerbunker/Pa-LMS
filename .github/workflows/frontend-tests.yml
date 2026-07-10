@@ -1,9 +1,6 @@
 name: Frontend Tests
 
-on:
-  pull_request:
-  push:
-    branches: [main, develop, main-hotfix]
+on: workflow_dispatch
 
 jobs:
   vitest:

@@ -1,11 +1,5 @@
 name: Build Container Image
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-    tags:
-      - "*"
+on: workflow_dispatch
 jobs:
   build:
     name: Build

@@ -1,11 +1,5 @@
 name: Server Tests
-on:
-  push:
-    branches:
-      - main
-      - develop
-      - main-hotfix
-  pull_request: {}
+on: workflow_dispatch
 jobs:
   tests:
     name: Server Tests

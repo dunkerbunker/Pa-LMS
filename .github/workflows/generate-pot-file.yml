@@ -1,8 +1,5 @@
 name: Regenerate POT file (translatable strings)
-on:
-  schedule:
-    - cron: "00 16 * * 5"
-  workflow_dispatch:
+on: workflow_dispatch
 
 jobs:
   regenerate-pot-file:
