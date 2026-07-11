@@ -1,8 +1,8 @@
 describe("Production deployment smoke test", () => {
-	it("serves the LMS app through the public proxy", () => {
-		const lmsPath = Cypress.env("lmsPath") || "lms";
-		const escapedPath = lmsPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	const lmsPath = Cypress.env("lmsPath") || "lms";
+	const escapedPath = lmsPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+	it("serves the LMS app through the public proxy", () => {
 		cy.request("/api/method/ping")
 			.its("body")
 			.should("deep.include", { message: "pong" });
@@ -17,5 +17,21 @@ describe("Production deployment smoke test", () => {
 			.its("response.statusCode")
 			.should("be.oneOf", [200, 304]);
 		cy.get("body").should("not.be.empty");
+	});
+
+	it("authenticates through the rendered login form", () => {
+		const loginPath = Cypress.env("loginPath") || "login";
+		const user = Cypress.env("adminUser") || "Administrator";
+		const password = Cypress.env("adminPassword");
+
+		expect(password, "CYPRESS_adminPassword").to.be.a("string").and.not.be.empty;
+		cy.visit(`/${loginPath}`);
+		cy.get("#login_email").fill(user);
+		cy.get("#login_password").fill(password);
+		cy.get("button.btn-login").click();
+		cy.location("pathname").should("not.match", new RegExp(`^/(${escapedPath}/)?login$`));
+		cy.request("/api/method/frappe.auth.get_logged_user")
+			.its("body")
+			.should("deep.include", { message: user });
 	});
 });

@@ -41,8 +41,10 @@ app_icon_title = get_lms_app_name()
 # app_include_js = "/assets/lms/js/lms.js"
 
 # include js, css files in header of web template
-web_include_css = "lms.bundle.css"
-# web_include_css = "/assets/lms/css/lms.css"
+# Use the app's static stylesheet directly. The LMS frontend is built by Vite,
+# while Frappe's logical ``lms.bundle.css`` mapping is not emitted in this
+# image build; referencing it leaves login pages without styles.
+web_include_css = "/assets/lms/css/style.css"
 web_include_js = []
 
 # include custom scss in every website theme (without file extension ".scss")

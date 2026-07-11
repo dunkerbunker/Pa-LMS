@@ -65,11 +65,12 @@ Then deploy and run:
 
 ```bash
 ./docker/scripts/deploy-local.sh
-CYPRESS_baseUrl=http://localhost:8080 npx cypress run --browser electron --spec cypress/e2e/production_smoke.cy.js
+CYPRESS_baseUrl=http://localhost:8080 CYPRESS_adminPassword=admin npx cypress run --browser electron --spec cypress/e2e/production_smoke.cy.js
 ```
 
-For a site behind a path prefix, pass the same `LMS_PATH` to Cypress, for
-example `CYPRESS_lmsPath=apps/pa`.
+For a site behind a path prefix, pass the same `LMS_PATH` to Cypress and the
+public login path. For example: `CYPRESS_lmsPath=apps/pa
+CYPRESS_loginPath=apps/pa/login`.
 
 Stop it without deleting local data:
 
