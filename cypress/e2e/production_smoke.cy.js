@@ -40,7 +40,8 @@ describe("Production deployment smoke test", () => {
 		const password = Cypress.env("adminPassword");
 
 		expect(password, "CYPRESS_adminPassword").to.be.a("string").and.not.be.empty;
-		cy.visit(`/${lmsPath}/persona`);
+		cy.clearAllCookies();
+		cy.visit(`/login?redirect-to=/${lmsPath}/persona`);
 		cy.get("#login_email").type(user);
 		cy.get("#login_password").type(password);
 		cy.get("button.btn-login").click();

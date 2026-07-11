@@ -247,7 +247,7 @@ const routes = [
 ]
 
 let router = createRouter({
-	history: createWebHistory(`/${getLmsBasePath()}`),
+	history: createWebHistory(getLmsBasePath()),
 	routes,
 })
 
