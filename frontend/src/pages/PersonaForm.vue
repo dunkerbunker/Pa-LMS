@@ -17,7 +17,7 @@
 					{{
 						__(
 							'Answer a few quick questions so we can set {0} up for you'
-						).replace('{0}', appName)
+						).format(appName)
 					}}
 				</p>
 			</div>
@@ -106,7 +106,7 @@ const labels = computed(() => ({
 const questions = computed(() => [
 	{
 		key: 'usage_context',
-		title: __('Where will you be using {0}?').replace('{0}', appName.value),
+		title: __('Where will you be using {0}?').format(appName.value),
 		options: [
 			{ label: __('School'), value: 'School' },
 			{

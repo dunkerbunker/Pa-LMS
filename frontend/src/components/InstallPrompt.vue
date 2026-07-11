@@ -1,7 +1,7 @@
 <template>
 	<Dialog v-model:open="showDialog">
 		<template #title>
-			<h2 class="text-xl-bold">{{ __('Install {0}').replace('{0}', appName) }}</h2>
+			<h2 class="text-xl-bold">{{ __('Install {0}').format(appName) }}</h2>
 		</template>
 		<template #default>
 			<p>
@@ -29,7 +29,7 @@
 					class="mb-1 flex flex-row items-center justify-between px-3 text-center"
 				>
 					<span class="text-base-bold text-ink-gray-9">
-						{{ __('Install {0}').replace('{0}', appName) }}
+						{{ __('Install {0}').format(appName) }}
 					</span>
 					<span class="inline-flex items-baseline">
 						<span

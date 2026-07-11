@@ -47,7 +47,7 @@
 					:placeholder="
 						__(
 							'<p>Dear {{ member_name }},</p>\n\n<p>You have been enrolled in our upcoming batch {{ batch_name }}.</p>\n\n<p>Thanks,</p>\n<p>{0}</p>'
-						).replace('{0}', appName)
+						).format(appName)
 					"
 				/>
 				<div v-else>
@@ -63,7 +63,7 @@
 						:placeholder="
 							__(
 								'Dear {{ member_name }},\n\nYou have been enrolled in our upcoming batch {{ batch_name }}.\n\nThanks,\n{0}'
-							).replace('{0}', appName)
+						).format(appName)
 						"
 						editorClass="prose-sm max-w-none border-b border-x border-outline-elevation-2 bg-surface-gray-2 rounded-b-md py-1 px-2 min-h-[7rem] max-h-[18rem] overflow-y-auto"
 					/>

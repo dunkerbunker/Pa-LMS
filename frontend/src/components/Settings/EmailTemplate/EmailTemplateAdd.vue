@@ -106,10 +106,10 @@ const template = reactive({
 
 const htmlPlaceholder = computed(() => __(
 	'<p>Dear {{ member_name }},</p>\n\n<p>You have been enrolled in our upcoming batch {{ batch_name }}.</p>\n\n<p>Thanks,</p>\n<p>{0}</p>'
-).replace('{0}', appName.value))
+).format(appName.value))
 const richPlaceholder = computed(() => __(
 	'Dear {{ member_name }},\n\nYou have been enrolled in our upcoming batch {{ batch_name }}.\n\nThanks,\n{0}'
-).replace('{0}', appName.value))
+).format(appName.value))
 
 const templates = createListResource({
 	doctype: 'Email Template',

@@ -214,8 +214,7 @@ const addMember = async (close?: () => void) => {
 			toast.success(
 				copied
 					? __('Invite created. Link copied to clipboard.')
-					: __('Invite created. Email is not configured. Invite link: {0}').replace(
-							'{0}',
+					: __('Invite created. Email is not configured. Invite link: {0}').format(
 							invite.invite_url,
 						),
 			)
