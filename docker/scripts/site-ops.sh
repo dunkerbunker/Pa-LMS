@@ -7,6 +7,17 @@ site_exists() {
 	test -f "sites/${SITE_NAME}/site_config.json"
 }
 
+set_public_url() {
+	local public_url="${PUBLIC_URL:?PUBLIC_URL is required}"
+	# Frappe treats a trailing slash in host_name as a distinct canonical URL
+	# and redirects the application root to its slash-less form. The public
+	# proxy intentionally canonicalizes the app root with a slash, so normalize
+	# this once before saving it.
+	public_url="${public_url%/}"
+	[ -n "$public_url" ] || { echo "PUBLIC_URL must not be only a slash." >&2; exit 1; }
+	bench --site "$SITE_NAME" set-config host_name "$public_url"
+}
+
 case "${SITE_OPERATION:-help}" in
 	bootstrap)
 		if site_exists; then
@@ -25,8 +36,12 @@ case "${SITE_OPERATION:-help}" in
 			--install-app lms \
 			--set-default
 		bench --site "$SITE_NAME" set-config developer_mode 0
-		bench --site "$SITE_NAME" set-config host_name "${PUBLIC_URL:?PUBLIC_URL is required}"
+		set_public_url
 		bench --site "$SITE_NAME" set-config maintenance_mode 0
+		;;
+	configure)
+		site_exists || { echo "Site ${SITE_NAME} does not exist." >&2; exit 1; }
+		set_public_url
 		;;
 	maintenance-on)
 		site_exists || { echo "Site ${SITE_NAME} does not exist." >&2; exit 1; }
@@ -48,7 +63,7 @@ case "${SITE_OPERATION:-help}" in
 		bench --site "$SITE_NAME" backup --with-files
 		;;
 	*)
-		echo "Usage: SITE_OPERATION={bootstrap|maintenance-on|migrate|maintenance-off|backup}" >&2
+		echo "Usage: SITE_OPERATION={bootstrap|configure|maintenance-on|migrate|maintenance-off|backup}" >&2
 		exit 64
 		;;
 esac

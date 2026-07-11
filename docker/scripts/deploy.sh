@@ -35,6 +35,7 @@ if [ "${SKIP_BUILD:-false}" != "true" ]; then
 fi
 "${COMPOSE[@]}" up -d db redis-cache redis-queue configurator
 run_ops bootstrap
+run_ops configure
 run_ops maintenance-on
 # Site configuration is cached by already-running Frappe workers. Recreate the
 # request-serving services before migrating so every process loads maintenance
