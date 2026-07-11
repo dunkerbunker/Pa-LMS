@@ -51,8 +51,9 @@ run_ops maintenance-off
 # Frappe can cache site configuration briefly after maintenance mode changes, so
 # the 60-second retry window is intentional.
 source "$ENV_FILE"
+healthcheck_url="${HEALTHCHECK_URL:-http://127.0.0.1:${HEALTHCHECK_PORT:-${HTTP_PORT:-80}}/api/method/ping}"
 for attempt in $(seq 1 30); do
-	if curl --fail --silent --show-error "http://127.0.0.1:${HTTP_PORT:-80}/api/method/ping" >/dev/null; then
+	if curl --fail --silent --show-error "$healthcheck_url" >/dev/null; then
 		trap - EXIT
 		echo "Deployment succeeded."
 		exit 0
