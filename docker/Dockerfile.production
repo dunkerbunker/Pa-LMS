@@ -23,9 +23,12 @@ COPY --chown=frappe:frappe frontend apps/lms/frontend
 USER frappe
 # bench build discovers custom public assets through sites/apps.txt. Populate it
 # in the image too (the production configurator writes the same list to the
-# persistent sites volume at runtime) so /assets/lms is linked into nginx.
+# persistent sites volume at runtime) so /assets/lms is linked into nginx. The
+# build-time node_modules directories are removed afterwards because production
+# serves only the compiled frontend assets.
 RUN printf 'frappe\npayments\nlms\n' > sites/apps.txt \
 	&& ./env/bin/pip install --no-cache-dir -e apps/payments -e apps/lms \
 	&& bench build --app lms \
+	&& rm -rf apps/lms/node_modules apps/lms/frontend/node_modules \
 	&& rm -rf assets/lms \
 	&& ln -s /home/frappe/frappe-bench/apps/lms/lms/public assets/lms
