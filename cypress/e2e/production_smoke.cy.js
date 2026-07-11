@@ -34,4 +34,17 @@ describe("Production deployment smoke test", () => {
 			.its("body")
 			.should("deep.include", { message: user });
 	});
+
+	it("returns to and renders the prefixed persona page after login", () => {
+		const user = Cypress.env("adminUser") || "Administrator";
+		const password = Cypress.env("adminPassword");
+
+		expect(password, "CYPRESS_adminPassword").to.be.a("string").and.not.be.empty;
+		cy.visit(`/${lmsPath}/persona`);
+		cy.get("#login_email").type(user);
+		cy.get("#login_password").type(password);
+		cy.get("button.btn-login").click();
+		cy.location("pathname").should("eq", `/${lmsPath}/persona`);
+		cy.contains(`Where will you be using Pa's Academy?`).should("be.visible");
+	});
 });

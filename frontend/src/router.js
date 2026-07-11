@@ -265,10 +265,10 @@ router.beforeEach(async (to, from, next) => {
 
 	if (!isLoggedIn) {
 		if (to.meta?.public) return next()
-		const redirectTo =
+	const redirectTo =
 			to.name === 'Home'
 				? ''
-				: `?redirect-to=${encodeURIComponent(to.fullPath)}`
+				: `?redirect-to=${encodeURIComponent(getLmsRoute(to.fullPath))}`
 		window.location.href = `/login${redirectTo}`
 		return
 	}
