@@ -68,6 +68,9 @@ Then deploy and run:
 CYPRESS_baseUrl=http://localhost:8080 npx cypress run --browser electron --spec cypress/e2e/production_smoke.cy.js
 ```
 
+For a site behind a path prefix, pass the same `LMS_PATH` to Cypress, for
+example `CYPRESS_lmsPath=apps/pa`.
+
 Stop it without deleting local data:
 
 ```bash
