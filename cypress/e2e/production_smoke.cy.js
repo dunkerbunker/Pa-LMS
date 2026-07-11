@@ -26,8 +26,8 @@ describe("Production deployment smoke test", () => {
 
 		expect(password, "CYPRESS_adminPassword").to.be.a("string").and.not.be.empty;
 		cy.visit(`/${loginPath}`);
-		cy.get("#login_email").fill(user);
-		cy.get("#login_password").fill(password);
+		cy.get("#login_email").type(user);
+		cy.get("#login_password").type(password);
 		cy.get("button.btn-login").click();
 		cy.location("pathname").should("not.match", new RegExp(`^/(${escapedPath}/)?login$`));
 		cy.request("/api/method/frappe.auth.get_logged_user")
