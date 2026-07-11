@@ -18,6 +18,14 @@ set_public_url() {
 	bench --site "$SITE_NAME" set-config host_name "$public_url"
 }
 
+set_lms_path() {
+	local lms_path="${LMS_PATH:-lms}"
+	lms_path="${lms_path#/}"
+	lms_path="${lms_path%/}"
+	[ -n "$lms_path" ] || { echo "LMS_PATH must not be empty." >&2; exit 1; }
+	bench --site "$SITE_NAME" set-config lms_path "$lms_path"
+}
+
 case "${SITE_OPERATION:-help}" in
 	bootstrap)
 		if site_exists; then
@@ -37,11 +45,13 @@ case "${SITE_OPERATION:-help}" in
 			--set-default
 		bench --site "$SITE_NAME" set-config developer_mode 0
 		set_public_url
+		set_lms_path
 		bench --site "$SITE_NAME" set-config maintenance_mode 0
 		;;
 	configure)
 		site_exists || { echo "Site ${SITE_NAME} does not exist." >&2; exit 1; }
 		set_public_url
+		set_lms_path
 		;;
 	maintenance-on)
 		site_exists || { echo "Site ${SITE_NAME} does not exist." >&2; exit 1; }

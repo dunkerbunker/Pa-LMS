@@ -168,6 +168,7 @@ services:
     environment:
       SITE_NAME: ${SITE_NAME:?Set SITE_NAME in docker/.env.production}
       PUBLIC_URL: ${PUBLIC_URL:?Set PUBLIC_URL in docker/.env.production}
+      LMS_PATH: ${LMS_PATH:-lms}
       MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Set MARIADB_ROOT_PASSWORD in docker/.env.production}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in docker/.env.production}
       SITE_OPERATION: ${SITE_OPERATION:-help}

@@ -7,7 +7,10 @@ workers, Redis, MariaDB, and a Caddy TLS proxy as separate containers.
 ## First deployment
 
 1. Copy `.env.production.example` to `.env.production`; set a real domain,
-   `PUBLIC_URL`, and strong credentials. Do not commit that file.
+   `PUBLIC_URL`, `LMS_PATH`, and strong credentials. Do not commit that file.
+   `LMS_PATH` is the public LMS route without slashes (for example `apps/pa`
+   for `https://your-domain.example/apps/pa`). It must match the reverse-proxy
+   path.
 2. Point DNS A/AAAA records at the server and allow inbound ports 80 and 443.
    Caddy obtains and renews the TLS certificate automatically.
 3. Run `bash docker/scripts/deploy.sh` on a Linux server with Docker Compose v2.
@@ -52,6 +55,7 @@ production, but its own `lms-local_*` volumes and port 8080. Its key values are:
 ```dotenv
 SITE_NAME=lms.localhost
 PUBLIC_URL=http://localhost:8080
+LMS_PATH=lms
 CADDY_SITE_ADDRESS=:80
 HTTP_PORT=8080
 HTTPS_PORT=8443
