@@ -15,3 +15,9 @@ lms/www/lms.html
 lms/www/_lms.html
 frappe-ui
 frappe-semgrep-rules
+docker/.env
+docker/.env.production
+docker/.env.local
+docker/secrets/
+cypress/videos/
+cypress/screenshots/

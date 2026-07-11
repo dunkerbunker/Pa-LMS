@@ -1,0 +1,16 @@
+.git
+.github
+.pytest_cache
+.ruff_cache
+__pycache__
+*.py[cod]
+*.egg-info
+node_modules
+frontend/node_modules
+frappe-ui
+cypress/videos
+cypress/screenshots
+docker/.env
+docker/.env.production
+docker/secrets
+yarn-error.log

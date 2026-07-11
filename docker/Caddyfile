@@ -1,0 +1,10 @@
+{
+	# TLS certificates and ACME state are stored in Caddy's persistent volumes.
+	auto_https prefer_wildcard
+}
+
+{$CADDY_SITE_ADDRESS} {
+	encode zstd gzip
+	header -Server
+	reverse_proxy frontend:8080
+}

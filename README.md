@@ -139,6 +139,10 @@ You need Docker, docker-compose and git setup on your machine. Refer [Docker doc
     # Download the setup script
     wget -O init.sh https://raw.githubusercontent.com/frappe/lms/develop/docker/init.sh
 
+    # Download and configure local-only credentials
+    wget -O .env.example https://raw.githubusercontent.com/frappe/lms/develop/docker/.env.example
+    cp .env.example .env
+
 **Step 2**: Run the container and daemonize it
 
     docker compose up -d

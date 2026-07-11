@@ -8,13 +8,22 @@ $ cd lms
 $ cd docker
 ```
 
-**Step 2:** Run docker-compose
+**Step 2:** Create the local environment file
+
+```
+$ cp .env.example .env
+```
+
+The supplied values retain the development credentials used below. Change them
+before exposing the instance beyond local testing.
+
+**Step 3:** Run docker-compose
 
 ```
 $ docker-compose up
 ```
 
-**Step 3:** Visit the website at http://localhost:8000/
+**Step 4:** Visit the website at http://localhost:8000/
 
 You'll have to go through the setup wizard to setup the website for the first time you access it. Login using the following credentials to complete the setup wizard.
 

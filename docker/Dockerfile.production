@@ -1,0 +1,31 @@
+# The digest is supplied through docker/.env.production. Pinning the base image
+# means an application deployment cannot silently pick up a different Frappe build.
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+
+ARG PAYMENTS_REF
+
+USER root
+WORKDIR /home/frappe/frappe-bench
+
+# LMS declares Payments as a required Frappe app, but the upstream LMS runtime
+# image does not include it. Clone a reviewed, immutable ref during the build so
+# a fresh site and later migrations always have the dependency available.
+RUN git clone https://github.com/frappe/payments.git apps/payments \
+	&& git -C apps/payments checkout "$PAYMENTS_REF"
+
+# Package only application inputs in the image; operational scripts and local
+# Docker configuration never trigger an application rebuild or enter the image.
+COPY --chown=frappe:frappe pyproject.toml MANIFEST.in README.md license.txt package.json yarn.lock apps/lms/
+COPY --chown=frappe:frappe lms apps/lms/lms
+COPY --chown=frappe:frappe frontend apps/lms/frontend
+
+USER frappe
+# bench build discovers custom public assets through sites/apps.txt. Populate it
+# in the image too (the production configurator writes the same list to the
+# persistent sites volume at runtime) so /assets/lms is linked into nginx.
+RUN printf 'frappe\npayments\nlms\n' > sites/apps.txt \
+	&& ./env/bin/pip install --no-cache-dir -e apps/payments -e apps/lms \
+	&& bench build --app lms \
+	&& rm -rf assets/lms \
+	&& ln -s /home/frappe/frappe-bench/apps/lms/lms/public assets/lms

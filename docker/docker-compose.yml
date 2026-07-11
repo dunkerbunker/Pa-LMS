@@ -9,7 +9,7 @@ services:
       - --skip-character-set-client-handshake
       - --skip-innodb-read-only-compressed # Temporary fix for MariaDB 10.6
     environment:
-      MYSQL_ROOT_PASSWORD: 123
+      MYSQL_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Copy docker/.env.example to docker/.env before starting Docker}
     volumes:
       - mariadb-data:/var/lib/mysql
 
@@ -22,6 +22,8 @@ services:
     environment:
       SHELL: /bin/bash
       LMS_APP_NAME: "Pa's Academy"
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Copy docker/.env.example to docker/.env before starting Docker}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Copy docker/.env.example to docker/.env before starting Docker}
     working_dir: /home/frappe
     volumes:
       - ..:/workspace

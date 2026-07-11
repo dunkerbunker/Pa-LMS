@@ -4,6 +4,8 @@ set -e
 SITE_NAME="lms.localhost"
 DEFAULT_LMS_APP_NAME="Pa's Academy"
 LMS_APP_NAME="${LMS_APP_NAME:-$DEFAULT_LMS_APP_NAME}"
+: "${MARIADB_ROOT_PASSWORD:?MARIADB_ROOT_PASSWORD must be set}"
+: "${ADMIN_PASSWORD:?ADMIN_PASSWORD must be set}"
 
 ensure_app_in_apps_txt() {
     local app="$1"
@@ -91,8 +93,8 @@ if [ -d "/home/frappe/frappe-bench/apps/frappe" ]; then
     if [ ! -d "sites/$SITE_NAME" ]; then
         bench new-site "$SITE_NAME" \
         --force \
-        --mariadb-root-password 123 \
-        --admin-password admin \
+        --mariadb-root-password "$MARIADB_ROOT_PASSWORD" \
+        --admin-password "$ADMIN_PASSWORD" \
         --no-mariadb-socket
     fi
     install_app_if_missing payments
@@ -129,8 +131,8 @@ ensure_lms_app
 
 bench new-site "$SITE_NAME" \
 --force \
---mariadb-root-password 123 \
---admin-password admin \
+--mariadb-root-password "$MARIADB_ROOT_PASSWORD" \
+--admin-password "$ADMIN_PASSWORD" \
 --no-mariadb-socket
 
 install_app_if_missing payments

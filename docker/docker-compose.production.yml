@@ -1,0 +1,202 @@
+name: ${COMPOSE_PROJECT_NAME:-lms-prod}
+
+x-app-image: &app_image
+  image: ${APP_IMAGE:?Set APP_IMAGE in docker/.env.production}:${APP_IMAGE_TAG:?Set APP_IMAGE_TAG in docker/.env.production}
+  build:
+    # Deployment scripts set the repository as the Compose project directory.
+    context: .
+    dockerfile: docker/Dockerfile.production
+    args:
+      BASE_IMAGE: ${BASE_IMAGE:?Set BASE_IMAGE in docker/.env.production}
+      PAYMENTS_REF: ${PAYMENTS_REF:?Set PAYMENTS_REF in docker/.env.production}
+  restart: unless-stopped
+
+x-backend-defaults: &backend_defaults
+  <<: *app_image
+  volumes:
+    - sites:/home/frappe/frappe-bench/sites
+    - logs:/home/frappe/frappe-bench/logs
+  depends_on:
+    configurator:
+      condition: service_completed_successfully
+
+services:
+  db:
+    image: mariadb:10.11.13
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --skip-innodb-read-only-compressed
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Set MARIADB_ROOT_PASSWORD in docker/.env.production}
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h localhost -uroot -p$$MARIADB_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  redis-cache:
+    image: redis:7.4.5-alpine
+    restart: unless-stopped
+    command: redis-server --save "" --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+
+  redis-queue:
+    image: redis:7.4.5-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes --appendfsync everysec
+    volumes:
+      - redis-queue-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+
+  configurator:
+    <<: *app_image
+    restart: "no"
+    entrypoint: []
+    command:
+      - bash
+      - -ec
+      - |
+        ls -1 apps > sites/apps.txt
+        bench set-config -g db_host db
+        bench set-config -gp db_port 3306
+        bench set-config -g redis_cache redis://redis-cache:6379
+        bench set-config -g redis_queue redis://redis-queue:6379
+        bench set-config -g redis_socketio redis://redis-queue:6379
+        bench set-config -gp socketio_port 9000
+        bench set-config -g developer_mode 0
+    volumes:
+      - sites:/home/frappe/frappe-bench/sites
+    depends_on:
+      db:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+      redis-queue:
+        condition: service_healthy
+
+  backend:
+    <<: *backend_defaults
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import socket; socket.create_connection((\"127.0.0.1\", 8000), 2).close()'"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
+
+  frontend:
+    <<: *app_image
+    command: nginx-entrypoint.sh
+    restart: unless-stopped
+    environment:
+      BACKEND: backend:8000
+      SOCKETIO: websocket:9000
+      # A deliberate single-site deployment: no request is routed by an arbitrary Host header.
+      FRAPPE_SITE_NAME_HEADER: ${SITE_NAME:?Set SITE_NAME in docker/.env.production}
+      UPSTREAM_REAL_IP_ADDRESS: 172.16.0.0/12
+      UPSTREAM_REAL_IP_HEADER: X-Forwarded-For
+      UPSTREAM_REAL_IP_RECURSIVE: "on"
+      PROXY_READ_TIMEOUT: 120
+      CLIENT_MAX_BODY_SIZE: 50m
+    volumes:
+      - sites:/home/frappe/frappe-bench/sites
+      - logs:/home/frappe/frappe-bench/logs
+    depends_on:
+      backend:
+        condition: service_healthy
+      websocket:
+        condition: service_started
+
+  websocket:
+    <<: *backend_defaults
+    command: node /home/frappe/frappe-bench/apps/frappe/socketio.js
+
+  queue-short:
+    <<: *backend_defaults
+    command: bench worker --queue short,default
+
+  queue-long:
+    <<: *backend_defaults
+    command: bench worker --queue long,default,short
+
+  scheduler:
+    <<: *backend_defaults
+    command: bench schedule
+
+  caddy:
+    image: caddy:2.10.0-alpine
+    restart: unless-stopped
+    environment:
+      CADDY_SITE_ADDRESS: ${CADDY_SITE_ADDRESS:?Set CADDY_SITE_ADDRESS in docker/.env.production}
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+      - "${HTTPS_PORT:-443}:443/udp"
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      frontend:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "caddy", "version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  site-ops:
+    <<: *app_image
+    profiles: ["ops"]
+    restart: "no"
+    entrypoint: ["bash", "/opt/lms-ops/site-ops.sh"]
+    environment:
+      SITE_NAME: ${SITE_NAME:?Set SITE_NAME in docker/.env.production}
+      PUBLIC_URL: ${PUBLIC_URL:?Set PUBLIC_URL in docker/.env.production}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Set MARIADB_ROOT_PASSWORD in docker/.env.production}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in docker/.env.production}
+      SITE_OPERATION: ${SITE_OPERATION:-help}
+    volumes:
+      - sites:/home/frappe/frappe-bench/sites
+      - ./docker/scripts:/opt/lms-ops:ro
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
+
+  backup-uploader:
+    image: amazon/aws-cli:2.22.35
+    profiles: ["ops"]
+    restart: "no"
+    environment:
+      BACKUPS_ENABLED: ${BACKUPS_ENABLED:-false}
+      AWS_ACCESS_KEY_ID: ${DO_SPACES_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${DO_SPACES_SECRET_ACCESS_KEY:-}
+      AWS_DEFAULT_REGION: ${DO_SPACES_REGION:-nyc3}
+      DO_SPACES_ENDPOINT: ${DO_SPACES_ENDPOINT:-}
+      DO_SPACES_BUCKET: ${DO_SPACES_BUCKET:-}
+      SITE_NAME: ${SITE_NAME:?Set SITE_NAME in docker/.env.production}
+    entrypoint: ["/bin/sh", "/opt/lms-ops/upload-backups.sh"]
+    volumes:
+      - sites:/sites:ro
+      - ./docker/scripts:/opt/lms-ops:ro
+
+volumes:
+  mariadb-data:
+  sites:
+  logs:
+  redis-queue-data:
+  caddy-data:
+  caddy-config:
