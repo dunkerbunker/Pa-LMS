@@ -28,8 +28,11 @@ trap cleanup EXIT
 
 # Every Frappe runtime service uses the same APP_IMAGE. Build it once through
 # the backend target; building every service concurrently just exports the same
-# image tag repeatedly and wastes deployment time.
-"${COMPOSE[@]}" build --pull backend
+# image tag repeatedly and wastes deployment time. CI/CD can pre-build a pinned
+# image and set SKIP_BUILD=true for a short maintenance window.
+if [ "${SKIP_BUILD:-false}" != "true" ]; then
+	"${COMPOSE[@]}" build --pull backend
+fi
 "${COMPOSE[@]}" up -d db redis-cache redis-queue configurator
 run_ops bootstrap
 run_ops maintenance-on
