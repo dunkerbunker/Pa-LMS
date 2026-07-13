@@ -43,16 +43,13 @@ const props = defineProps<{
 }>()
 
 const createReview = createResource({
-	url: 'frappe.client.insert',
+	url: 'lms.lms.doctype.lms_course_review.lms_course_review.submit_review',
 	makeParams() {
 		return {
-			doc: {
-				doctype: 'LMS Course Review',
-				course: props.courseName,
-				review: review.review,
-				// the Rating control is 0–5; the doctype stores a 0–1 fraction
-				rating: review.rating / 5,
-			},
+			course: props.courseName,
+			review: review.review,
+			// the Rating control is 0–5; the doctype stores a 0–1 fraction
+			rating: review.rating / 5,
 		}
 	},
 })
@@ -69,8 +66,11 @@ function submitReview(close: () => void) {
 			hasReviewed.value?.reload()
 			close()
 		},
-		onError(err: { messages?: string[] } | string) {
-			const msg = typeof err === 'string' ? err : err.messages?.[0] ?? 'Error'
+		onError(err: { messages?: string[]; message?: string } | string) {
+			const msg =
+				typeof err === 'string'
+					? err
+					: err.messages?.[0] ?? err.message ?? __('Something went wrong.')
 			toast.error(msg)
 		},
 	})

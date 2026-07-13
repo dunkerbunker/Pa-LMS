@@ -20,3 +20,25 @@ class LMSCourseReview(Document):
 	def validate_if_already_reviewed(self):
 		if frappe.db.exists("LMS Course Review", {"course": self.course, "owner": self.owner}):
 			frappe.throw(_("You have already reviewed this course"))
+
+
+@frappe.whitelist()
+def submit_review(course: str, rating: float, review: str | None = None):
+	"""Create a review for the signed-in, enrolled student.
+
+	Course enrollment is the authority for submitting a review. Some enrolled
+	portal users can lack the LMS Student role (for example, older/imported users),
+	so the generic ``frappe.client.insert`` permission check is too restrictive for
+	this workflow. Document validation below still enforces enrollment and prevents
+	duplicate reviews.
+	"""
+	review_doc = frappe.get_doc(
+		{
+			"doctype": "LMS Course Review",
+			"course": course,
+			"rating": rating,
+			"review": review,
+		}
+	)
+	review_doc.insert(ignore_permissions=True)
+	return review_doc.name

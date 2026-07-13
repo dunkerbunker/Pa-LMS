@@ -14,7 +14,10 @@ import ReviewModal from '@/components/Modals/ReviewModal.vue'
 // hoisted so the vi.mock factory (which runs at import time) can reference it
 const { toastError } = vi.hoisted(() => ({ toastError: vi.fn() }))
 // captured from the createResource() call so the test can inspect makeParams()
-let resourceConfig: { makeParams: () => { doc: Record<string, unknown> } }
+let resourceConfig: {
+	url: string
+	makeParams: () => Record<string, unknown>
+}
 
 // frappe-ui doesn't resolve under vitest; stub the pieces ReviewModal uses.
 // The Dialog stub renders each action as a button that invokes its onClick with
@@ -64,7 +67,7 @@ vi.mock('frappe-ui', () => ({
 				}
 			) => {
 				const err = opts.validate?.()
-				if (err) opts.onError?.(err)
+				if (err) opts.onError?.(new Error(err))
 				else opts.onSuccess?.()
 			},
 		}
@@ -106,11 +109,13 @@ describe('ReviewModal submit', () => {
 		await wrapper.get('[data-testid="review"]').setValue('Great course')
 		await wrapper.get('[data-testid="action"]').trigger('click')
 
-		const doc = resourceConfig.makeParams().doc
-		expect(doc.rating).toBe(1)
-		expect(doc.review).toBe('Great course')
-		expect(doc.course).toBe('C1')
-		expect(doc.doctype).toBe('LMS Course Review')
+		const params = resourceConfig.makeParams()
+		expect(resourceConfig.url).toBe(
+			'lms.lms.doctype.lms_course_review.lms_course_review.submit_review'
+		)
+		expect(params.rating).toBe(1)
+		expect(params.review).toBe('Great course')
+		expect(params.course).toBe('C1')
 	})
 
 	it('reloads reviews + has-reviewed and closes on a successful submit', async () => {
